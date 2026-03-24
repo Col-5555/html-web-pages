@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <title>Code CLA</title>
   </head>
   <body>
@@ -210,23 +211,24 @@
         <div class="testimonial-card">
           <div class="stars">★★★★★</div>
           <div class="testimonial-body">
-            <button class="arrow arrow-left">&#8249;</button>
-            <p>
+            <button class="arrow arrow-left" id="prev-btn">&#8249;</button>
+            <p id="testimonial-text">
               This guy is an amazing frontend developer that delivered the task
               exactly how we need it, do your self a favor and hire him, you
               will not be disappointed by the work delivered. He will go the
               extra mile to make sure that you are happy with your project. I
               will surely work again with him!
             </p>
-            <button class="arrow arrow-right">&#8250;</button>
+            <button class="arrow arrow-right" id="next-btn">&#8250;</button>
           </div>
           <div class="testimonial-author">
             <img
+              id="testimonial-photo"
               src="https://randomuser.me/api/portraits/women/44.jpg"
               alt="June Cha"
             />
-            <h3>June Cha</h3>
-            <p>Software Engineer</p>
+            <h3 id="testimonial-name">June Cha</h3>
+            <p id="testimonial-position">Software Engineer</p>
           </div>
           <div class="dots">
             <span class="dot active"></span>
@@ -242,7 +244,7 @@
 
     <section id="contact">
       <h2>Contact us</h2>
-      <form action="/submit" method="post">
+      <form id="contact-form" novalidate>
         <label for="name">Name</label>
         <input
           type="text"
@@ -251,6 +253,7 @@
           placeholder="Your Name"
           required
         />
+        <span class="error-message" id="name-error"></span>
         <label for="email">Email</label>
         <input
           type="email"
@@ -259,6 +262,7 @@
           placeholder="Your Email"
           required
         />
+        <span class="error-message" id="email-error"></span>
         <label for="message">Message</label>
         <textarea
           id="message"
@@ -266,13 +270,15 @@
           placeholder="Your Message"
           required
         ></textarea>
+        <span class="error-message" id="message-error"></span>
         <button type="submit">Submit</button>
       </form>
     </section>
     <footer>
       <p>
-        (c) 2026 Your Competative Programming Platform. All rights reserved.
+        (c) <span id="copyright-year">2026</span> Your Competative Programming Platform. All rights reserved.
       </p>
     </footer>
+    <script src="script.js"></script>
   </body>
 </html>

@@ -435,6 +435,15 @@ header button {
   align-self: flex-start;
 }
 
+/* Error messages beneath form inputs */
+.error-message {
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  margin-top: -12px;
+  margin-bottom: 8px;
+  min-height: 0;
+}
+
 /* ===== FOOTER ===== */
 footer {
   background-color: #23155B;
