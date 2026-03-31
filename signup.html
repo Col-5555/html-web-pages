@@ -3,24 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Martel+Sans:wght@400;600;700;800;900&display=swap"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              navy: "#23155B",
+              purple: "#8053FF",
+              muted: "#817d8e",
+              light: "#f4f4f4",
+              skyblue: "#4AA3DF",
+            },
+            fontFamily: {
+              martel: ["Martel Sans", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
     <title>Sign Up</title>
   </head>
-  <body>
-    <section id="sign-in">
-      <div class="signin-left">
-        <img src="assets/coding.png" alt="Coder illustration" />
+  <body class="m-0 p-0 font-martel bg-light text-navy">
+    <section class="flex flex-col md:flex-row min-h-screen">
+      <!-- Left panel — illustration -->
+      <div
+        class="flex items-center justify-center bg-navy md:w-1/2 min-h-[40vh] md:min-h-0"
+      >
+        <img src="assets/coding.png" alt="Coder illustration" class="max-w-[250px]" />
       </div>
-      <div class="signin-right">
-        <div class="signin-card">
-          <h2>Join Coders Now!</h2>
-          <form action="/submit" method="post">
+      <!-- Right panel — form -->
+      <div
+        class="flex-1 bg-light flex items-center justify-center py-8 px-5"
+      >
+        <div
+          class="bg-white rounded-lg p-10 w-full max-w-[400px] text-center"
+        >
+          <h2 class="text-purple text-2xl mb-8">Join Coders Now!</h2>
+          <form action="/submit" method="post" class="flex flex-col gap-4">
             <input
               type="text"
               id="first-name"
               name="first-name"
               placeholder="First Name"
               required
+              class="p-3.5 bg-navy border-none rounded-lg text-light font-martel text-sm outline-none placeholder:text-[#a0a0b0]"
             />
             <input
               type="text"
@@ -28,6 +59,7 @@
               name="last-name"
               placeholder="Last Name"
               required
+              class="p-3.5 bg-navy border-none rounded-lg text-light font-martel text-sm outline-none placeholder:text-[#a0a0b0]"
             />
             <input
               type="email"
@@ -35,6 +67,7 @@
               name="email"
               placeholder="Email"
               required
+              class="p-3.5 bg-navy border-none rounded-lg text-light font-martel text-sm outline-none placeholder:text-[#a0a0b0]"
             />
             <input
               type="password"
@@ -42,10 +75,21 @@
               name="password"
               placeholder="Password"
               required
+              class="p-3.5 bg-navy border-none rounded-lg text-light font-martel text-sm outline-none placeholder:text-[#a0a0b0]"
             />
-            <button type="submit">Sign Up</button>
+            <button
+              type="submit"
+              class="bg-skyblue text-light border-none p-3.5 rounded-lg font-bold text-base cursor-pointer font-martel"
+            >
+              Sign Up
+            </button>
           </form>
-          <p class="signup-footer">Already have an account?. <a href="signin.html">Login</a></p>
+          <p class="mt-5 text-sm text-navy">
+            Already have an account?.
+            <a href="signin.html" class="text-purple no-underline font-semibold"
+              >Login</a
+            >
+          </p>
         </div>
       </div>
     </section>

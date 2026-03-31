@@ -3,282 +3,468 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="styles.css" />
+    <!-- Google Font -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Martel+Sans:wght@400;600;700;800;900&display=swap"
+    />
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind custom config for project colours and font -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              navy: "#23155B",
+              purple: "#8053FF",
+              muted: "#817d8e",
+              light: "#f4f4f4",
+              skyblue: "#4AA3DF",
+            },
+            fontFamily: {
+              martel: ["Martel Sans", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Minimal custom styles for JS-driven dot indicators -->
+    <style>
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #d0d0d0;
+      }
+      .dot.active {
+        background-color: #8053ff;
+      }
+    </style>
     <title>Code CLA</title>
   </head>
-  <body>
-    <header>
-      <div>
-        <img src="assets/logo.svg" alt="Logo image" />
-        <p>CodeCLA</p>
+  <body class="m-0 p-0 font-martel bg-light text-navy">
+    <!-- ===== HEADER ===== -->
+    <header
+      class="flex flex-col md:flex-row items-center justify-between px-5 md:px-10 py-4 bg-light gap-4 md:gap-0"
+    >
+      <div class="flex items-center gap-2.5 flex-grow">
+        <img src="assets/logo.svg" alt="Logo image" class="h-10" />
+        <p class="text-xl font-bold text-navy">CodeCLA</p>
       </div>
-      <!-- the nav links and button are already grouped in a div -->
-      <div>
-        <a href="/">For Coders</a>
-        <a href="/">For Developers</a>
+      <div class="flex items-center">
+        <a href="/" class="text-navy font-semibold mr-5 no-underline"
+          >For Coders</a
+        >
+        <a href="/" class="text-navy font-semibold mr-5 no-underline"
+          >For Developers</a
+        >
       </div>
-      <button type="button">Join Now</button>
+      <button
+        type="button"
+        class="bg-purple text-light border-none px-5 py-2.5 rounded font-semibold cursor-pointer"
+      >
+        Join Now
+      </button>
     </header>
-    <section id="hero">
-      <h2>The place for Competitive Programmers</h2>
-      <p>
+
+    <!-- ===== HERO ===== -->
+    <section class="text-center py-12 md:py-20 px-5 md:px-10">
+      <h2 class="text-2xl md:text-4xl mb-5">
+        The place for Competitive Programmers
+      </h2>
+      <p
+        class="text-muted max-w-[700px] mx-auto mb-8 text-base leading-relaxed"
+      >
         CodeCLA is where programmers participate in programming contests, solve
         algorithm and data structure challenges and become a part of an awesome
         community.
       </p>
-      <div>
-        <button type="button">Become a coder</button>
-        <button type="button">Become a manager</button>
+      <div class="flex justify-center gap-4 flex-wrap">
+        <button
+          type="button"
+          class="bg-purple text-light border-none px-6 py-3 rounded font-semibold cursor-pointer"
+        >
+          Become a coder
+        </button>
+        <button
+          type="button"
+          class="bg-transparent text-purple border-2 border-purple px-6 py-3 rounded font-semibold cursor-pointer"
+        >
+          Become a manager
+        </button>
       </div>
     </section>
-    <section id="stats">
-      <h2>Practice to level-up</h2>
-      <div class="stats-grid">
-        <div class="stat-box">
-          <h3>1K</h3>
-          <p>Problems for practice</p>
-        </div>
-        <div class="stat-box">
-          <h3>100+</h3>
-          <p>Coders</p>
-        </div>
-        <div class="stat-box">
-          <h3>10</h3>
-          <p>Programming languages</p>
-        </div>
-        <div class="stat-box">
-          <h3>130K</h3>
-          <p>Submissions</p>
-        </div>
-      </div>
-    </section>
-    <section id="Competative-Programmers">
-      <section id="for-coders">
-        <p class="section-label">For coders</p>
-        <h2>What you will <span class="highlight">gain</span></h2>
-        <p class="section-subtitle">
-          You are a coder who wants to level up his skills in coding and problem
-          solving?. Here what we provide
-        </p>
-        <div class="features-grid">
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Rich practice set of problems</h4>
-              <p>
-                Access a rich library of practice problems, algorithms, and data
-                structures to enhance your skills
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Universal contests</h4>
-              <p>
-                Compete in regularly scheduled contests against top talent from
-                around the globe
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Constant feedback</h4>
-              <p>
-                Recieve personalised insights and feedback to improve your
-                problem solving skills
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Sharing is caring</h4>
-              <p>
-                Connect with like-minded individuals, form teams, and tackle
-                challenges together
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Track your progress</h4>
-              <p>Track your progress and climb the ranks on our leaderboard</p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Detailed solutions for problems</h4>
-              <p>
-                Access detailed solutions and explanations for every problem
-              </p>
-            </div>
-          </div>
-        </div>
-        <button type="button">Join coders community</button>
-      </section>
 
-      <section id="for-managers">
-        <p class="section-label">For managers</p>
-        <h2>
-          Access <span class="highlight">high-professional</span> platform for
-          coding challenges design
-        </h2>
-        <div class="features-grid">
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Custom challenges</h4>
-              <p>
-                Craft tailored coding challenges suited to your specific needs
-                and objectives
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Recruitment aligned</h4>
-              <p>
-                Design challenges that align perfectly with your recruitment
-                criteria
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Wide range of problems</h4>
-              <p>
-                Choose from a wide range of problem types including algorithmic,
-                data structures, puzzles, and more
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Ergonomic tools for challenges design</h4>
-              <p>
-                1 Access intuitive tools designed for efficient challenge
-                creation
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Collaboration</h4>
-              <p>
-                Collaborate with colleagues or peers in creating and refining
-                coding challenges
-              </p>
-            </div>
-          </div>
-          <div class="feature-card">
-            <img src="assets/ok.svg" alt="ok" />
-            <div>
-              <h4>Dedicated support</h4>
-              <p>Access dedicated support from our team of experts</p>
-            </div>
-          </div>
+    <!-- ===== STATS ===== -->
+    <section class="text-center py-10 md:py-16 px-5 md:px-10">
+      <h2 class="text-purple text-2xl md:text-3xl mb-8">
+        Practice to level-up
+      </h2>
+      <div
+        class="grid grid-cols-2 gap-5 max-w-[600px] mx-auto"
+      >
+        <div class="bg-light border border-gray-200 rounded-lg p-6">
+          <h3 class="text-2xl text-navy mb-1">1K</h3>
+          <p class="text-muted text-sm">Problems for practice</p>
         </div>
-        <button type="button">Join managers community</button>
-      </section>
-      <section id="showcase">
-        <div class="showcase-image">
-          <img src="assets/team.svg" alt="Team working" />
+        <div class="bg-light border border-gray-200 rounded-lg p-6">
+          <h3 class="text-2xl text-navy mb-1">100+</h3>
+          <p class="text-muted text-sm">Coders</p>
         </div>
-        <div class="showcase-content">
-          <img src="assets/logo.svg" alt="Logo image" />
-          <h2>Brought to you by CLA</h2>
-          <p>
-            Join the Ultimate Hub for Competitive Programmers and reach growth
-            and excellence in competitive programming
-          </p>
-          <p>
-            Coding challenges is made simple by our platform. Access a dashboard
-            of tools for high-quality challenge design
-          </p>
+        <div class="bg-light border border-gray-200 rounded-lg p-6">
+          <h3 class="text-2xl text-navy mb-1">10</h3>
+          <p class="text-muted text-sm">Programming languages</p>
         </div>
-      </section>
-      <section id="testimonials">
-        <h2>Testimonials</h2>
-        <div class="testimonial-card">
-          <div class="stars">★★★★★</div>
-          <div class="testimonial-body">
-            <button class="arrow arrow-left" id="prev-btn">&#8249;</button>
-            <p id="testimonial-text">
-              This guy is an amazing frontend developer that delivered the task
-              exactly how we need it, do your self a favor and hire him, you
-              will not be disappointed by the work delivered. He will go the
-              extra mile to make sure that you are happy with your project. I
-              will surely work again with him!
+        <div class="bg-light border border-gray-200 rounded-lg p-6">
+          <h3 class="text-2xl text-navy mb-1">130K</h3>
+          <p class="text-muted text-sm">Submissions</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FOR CODERS ===== -->
+    <section class="py-10 md:py-16 px-5 md:px-10">
+      <p class="text-purple font-bold text-sm mb-1">For coders</p>
+      <h2 class="text-2xl md:text-3xl mb-2.5">
+        What you will <span class="text-purple">gain</span>
+      </h2>
+      <p class="text-muted mb-8 max-w-[500px]">
+        You are a coder who wants to level up his skills in coding and problem
+        solving?. Here what we provide
+      </p>
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 mb-8"
+      >
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Rich practice set of problems
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Access a rich library of practice problems, algorithms, and data
+              structures to enhance your skills
             </p>
-            <button class="arrow arrow-right" id="next-btn">&#8250;</button>
-          </div>
-          <div class="testimonial-author">
-            <img
-              id="testimonial-photo"
-              src="https://randomuser.me/api/portraits/women/44.jpg"
-              alt="June Cha"
-            />
-            <h3 id="testimonial-name">June Cha</h3>
-            <p id="testimonial-position">Software Engineer</p>
-          </div>
-          <div class="dots">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
           </div>
         </div>
-      </section>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Universal contests
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Compete in regularly scheduled contests against top talent from
+              around the globe
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Constant feedback
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Recieve personalised insights and feedback to improve your problem
+              solving skills
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Sharing is caring
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Connect with like-minded individuals, form teams, and tackle
+              challenges together
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Track your progress
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Track your progress and climb the ranks on our leaderboard
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Detailed solutions for problems
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Access detailed solutions and explanations for every problem
+            </p>
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="bg-purple text-light border-none px-6 py-3 rounded font-semibold cursor-pointer"
+      >
+        Join coders community
+      </button>
     </section>
-    <!-- close #Competative-Programmers -->
 
-    <section id="contact">
-      <h2>Contact us</h2>
-      <form id="contact-form" novalidate>
-        <label for="name">Name</label>
+    <!-- ===== FOR MANAGERS ===== -->
+    <section class="py-10 md:py-16 px-5 md:px-10">
+      <p class="text-purple font-bold text-sm mb-1">For managers</p>
+      <h2 class="text-2xl md:text-3xl mb-8">
+        Access <span class="text-purple">high-professional</span> platform for
+        coding challenges design
+      </h2>
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 mb-8"
+      >
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Custom challenges
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Craft tailored coding challenges suited to your specific needs and
+              objectives
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Recruitment aligned
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Design challenges that align perfectly with your recruitment
+              criteria
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Wide range of problems
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Choose from a wide range of problem types including algorithmic,
+              data structures, puzzles, and more
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Ergonomic tools for challenges design
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              1 Access intuitive tools designed for efficient challenge creation
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">Collaboration</h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Collaborate with colleagues or peers in creating and refining
+              coding challenges
+            </p>
+          </div>
+        </div>
+        <div
+          class="flex items-center gap-4 bg-light border border-gray-200 rounded-lg p-5"
+        >
+          <img src="assets/ok.svg" alt="ok" class="w-6 h-6 shrink-0" />
+          <div>
+            <h4 class="text-sm font-bold text-navy mb-1">
+              Dedicated support
+            </h4>
+            <p class="text-sm text-muted leading-relaxed">
+              Access dedicated support from our team of experts
+            </p>
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="bg-purple text-light border-none px-6 py-3 rounded font-semibold cursor-pointer"
+      >
+        Join managers community
+      </button>
+    </section>
+
+    <!-- ===== SHOWCASE ===== -->
+    <section
+      class="flex flex-col md:flex-row items-stretch mx-5 md:mx-10 my-10 md:my-16 bg-light overflow-hidden"
+    >
+      <div class="md:w-2/5 shrink-0">
+        <img
+          src="assets/team.svg"
+          alt="Team working"
+          class="w-4/5 aspect-square md:aspect-auto md:h-4/5 object-cover block mx-auto md:mx-0 rounded-[30px] md:rounded-none md:rounded-r-[100px]"
+        />
+      </div>
+      <div
+        class="flex-1 flex flex-col justify-start items-center md:items-start text-center md:text-left py-8 px-5 md:py-16 md:px-12"
+      >
+        <img src="assets/logo.svg" alt="Logo image" class="w-12 h-12 mb-5" />
+        <h2 class="text-2xl md:text-3xl text-navy mb-5">
+          Brought to you by CLA
+        </h2>
+        <p class="text-muted text-sm leading-relaxed mb-2.5 max-w-[500px]">
+          Join the Ultimate Hub for Competitive Programmers and reach growth and
+          excellence in competitive programming
+        </p>
+        <p class="text-muted text-sm leading-relaxed mb-2.5 max-w-[500px]">
+          Coding challenges is made simple by our platform. Access a dashboard
+          of tools for high-quality challenge design
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== TESTIMONIALS ===== -->
+    <section class="text-center py-10 px-5 md:px-10">
+      <h2 class="text-purple text-2xl md:text-3xl mb-8">Testimonials</h2>
+      <div class="bg-white rounded-2xl py-10 px-5 md:px-8 max-w-[550px] mx-auto">
+        <div class="text-yellow-400 text-xl mb-5">★★★★★</div>
+        <div class="flex items-center gap-4 mb-6">
+          <button
+            id="prev-btn"
+            class="bg-transparent border border-gray-200 rounded-full w-9 h-9 text-lg text-muted cursor-pointer shrink-0 flex items-center justify-center"
+          >
+            &#8249;
+          </button>
+          <p
+            id="testimonial-text"
+            class="text-navy text-sm leading-7 font-semibold"
+          >
+            This guy is an amazing frontend developer that delivered the task
+            exactly how we need it, do your self a favor and hire him, you will
+            not be disappointed by the work delivered. He will go the extra mile
+            to make sure that you are happy with your project. I will surely
+            work again with him!
+          </p>
+          <button
+            id="next-btn"
+            class="bg-transparent border border-gray-200 rounded-full w-9 h-9 text-lg text-muted cursor-pointer shrink-0 flex items-center justify-center"
+          >
+            &#8250;
+          </button>
+        </div>
+        <div class="text-center">
+          <img
+            id="testimonial-photo"
+            src="https://randomuser.me/api/portraits/women/44.jpg"
+            alt="June Cha"
+            class="w-16 h-16 rounded-full object-cover mb-2.5"
+          />
+          <h3 id="testimonial-name" class="text-sm text-navy mb-0.5">
+            June Cha
+          </h3>
+          <p id="testimonial-position" class="text-sm text-muted">
+            Software Engineer
+          </p>
+        </div>
+        <div class="flex justify-center gap-2 mt-5">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CONTACT ===== -->
+    <section
+      class="bg-navy text-light py-16 md:py-20 px-5 md:px-10 rounded-tl-[60px] md:rounded-tl-[100px]"
+    >
+      <h2 class="text-2xl md:text-3xl mb-8">Contact us</h2>
+      <form id="contact-form" class="flex flex-col max-w-[500px]" novalidate>
+        <label for="name" class="font-bold text-sm mb-2">Name</label>
         <input
           type="text"
           id="name"
           name="name"
           placeholder="Your Name"
           required
+          class="p-3 border-none rounded text-sm mb-5 outline-none text-muted"
         />
-        <span class="error-message" id="name-error"></span>
-        <label for="email">Email</label>
+        <span class="text-red-400 text-xs -mt-3 mb-2" id="name-error"></span>
+        <label for="email" class="font-bold text-sm mb-2">Email</label>
         <input
           type="email"
           id="email"
           name="email"
           placeholder="Your Email"
           required
+          class="p-3 border-none rounded text-sm mb-5 outline-none text-muted"
         />
-        <span class="error-message" id="email-error"></span>
-        <label for="message">Message</label>
+        <span class="text-red-400 text-xs -mt-3 mb-2" id="email-error"></span>
+        <label for="message" class="font-bold text-sm mb-2">Message</label>
         <textarea
           id="message"
           name="message"
           placeholder="Your Message"
           required
+          class="p-3 border-none rounded text-sm mb-5 outline-none text-muted min-h-[120px] resize-y"
         ></textarea>
-        <span class="error-message" id="message-error"></span>
-        <button type="submit">Submit</button>
+        <span
+          class="text-red-400 text-xs -mt-3 mb-2"
+          id="message-error"
+        ></span>
+        <button
+          type="submit"
+          class="bg-purple text-light border-none py-2.5 px-6 rounded font-semibold cursor-pointer self-start"
+        >
+          Submit
+        </button>
       </form>
     </section>
-    <footer>
-      <p>
-        (c) <span id="copyright-year">2026</span> Your Competative Programming Platform. All rights reserved.
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="bg-navy text-center py-5 px-5 md:px-10 border-t border-[#3a2a7a]">
+      <p class="text-light text-sm">
+        (c) <span id="copyright-year">2026</span> Your Competative Programming
+        Platform. All rights reserved.
       </p>
     </footer>
+
     <script src="script.js"></script>
   </body>
 </html>
