@@ -1,27 +1,47 @@
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../redux/authSlice";
+import { useState } from "react";
+import Navbar from "../components/Navbar";
+import CategoriesList from "../components/CategoriesList";
+import ChallengesList from "../components/ChallengesList";
+import TrendingCategoriesBox from "../components/TrendingCategoriesBox";
+import TopKCodersList from "../components/TopKCodersList";
+import { challenges } from "../data/challenges";
 
-// Placeholder for the protected home page. Reaching it at all proves the
-// ProtectedRoute guard let us through. Later assignments replace this with the
-// real challenges list. For now it just greets the coder and offers a logout
-// button so the auth flow can be exercised end-to-end.
+// The home / challenges page — the index screen of the app. Lays out the
+// navbar, the challenges table (with category filter) in the main column, and
+// the trending categories + top coders in a right-hand sidebar.
 export default function Home() {
-  const user = useSelector((state) => state.auth.user);
-  const dispatch = useDispatch();
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  // "All" shows everything; otherwise filter by the challenge's category.
+  const visibleChallenges =
+    selectedCategory === "All"
+      ? challenges
+      : challenges.filter((c) => c.category === selectedCategory);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-appbg-light font-martel text-navy">
-      <h1 className="text-3xl font-bold text-purple">
-        Welcome{user?.email ? `, ${user.email}` : ""}!
-      </h1>
-      <p className="text-navy">You are signed in to Coders.</p>
-      <button
-        type="button"
-        onClick={() => dispatch(logout())}
-        className="cursor-pointer rounded-lg border-none bg-skyblue px-6 py-3 font-bold text-light"
-      >
-        Log out
-      </button>
-    </main>
+    <div className="min-h-screen bg-appbg-light font-martel text-black dark:bg-appbg-dark dark:text-white">
+      <Navbar />
+
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6 lg:flex-row">
+        {/* Main column: challenges */}
+        <main className="flex-1">
+          <h1 className="text-3xl font-bold">Challenges</h1>
+          <p className="mb-3 mt-4 text-sm text-muted">Select category</p>
+          <div className="mb-4">
+            <CategoriesList
+              selected={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
+          </div>
+          <ChallengesList challenges={visibleChallenges} />
+        </main>
+
+        {/* Sidebar: trending categories + top coders */}
+        <aside className="flex w-full flex-col gap-6 lg:w-80">
+          <TrendingCategoriesBox />
+          <TopKCodersList />
+        </aside>
+      </div>
+    </div>
   );
 }

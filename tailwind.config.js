@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
+  // Toggle dark mode by adding/removing the `dark` class on <html>.
+  // App.jsx keeps that class in sync with the Redux theme slice.
+  darkMode: "class",
   theme: {
     extend: {
       colors: {

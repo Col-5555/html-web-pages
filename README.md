@@ -1,11 +1,15 @@
-# Project: Coders — Authentication Pages
+# Project: Coders — CodeCLA Platform
 
-A React application for the CodeCLA "Coders" platform. This assignment
-re-builds the sign-in / sign-up screens as a Vite + React app with routing,
-a Redux auth store, a protected route, and form validation.
+A React application for the CodeCLA "Coders" platform, built up assignment by
+assignment. So far it has authentication (sign-in / sign-up) and the challenges
+home page, with a light/dark theme.
 
-See [`react-walkthrough.md`](./react-walkthrough.md) for a step-by-step
-explanation of how it was built.
+Step-by-step walkthroughs of each stage:
+
+- [`react-walkthrough.md`](./react-walkthrough.md) — auth pages, routing, Redux,
+  form validation.
+- [`challenges-walkthrough.md`](./challenges-walkthrough.md) — the challenges home
+  page, dummy data, and the Redux + Tailwind theme toggle.
 
 ## What You'll Practice
 
@@ -14,14 +18,20 @@ explanation of how it was built.
 - Global state with **Redux Toolkit** (`createSlice`, `configureStore`).
 - Guarding pages with a **ProtectedRoute** component.
 - Form validation two ways: React `useState`, and **react-hook-form + zod**.
+- Composing a page from reusable **components** driven by dummy data.
+- Rendering lists with `.map()`, icons with **react-icons**, and CSS-only
+  tooltips.
+- A **light/dark theme** toggle via a Redux slice + Tailwind class dark mode,
+  persisted to `localStorage`.
 
 ## Tech Stack
 
 - React 18 + Vite
-- TailwindCSS v3
+- TailwindCSS v3 (class-based dark mode)
 - React Router
 - Redux Toolkit + React Redux
 - react-hook-form + zod
+- react-icons
 
 ## How to Get Started
 
