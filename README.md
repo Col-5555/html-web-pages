@@ -1,10 +1,27 @@
-# Project: HTML Web Pages
+# Project: Coders — Authentication Pages
+
+A React application for the CodeCLA "Coders" platform. This assignment
+re-builds the sign-in / sign-up screens as a Vite + React app with routing,
+a Redux auth store, a protected route, and form validation.
+
+See [`react-walkthrough.md`](./react-walkthrough.md) for a step-by-step
+explanation of how it was built.
 
 ## What You'll Practice
 
-- Creating HTML structure for a landing page.
-- Using semantic tags to organize content into sections.
-- Implementing authentication forms using HTML
+- Scaffolding a React app with **Vite** and **TailwindCSS**.
+- Client-side routing with **React Router** (`Link`, `Routes`, `Navigate`).
+- Global state with **Redux Toolkit** (`createSlice`, `configureStore`).
+- Guarding pages with a **ProtectedRoute** component.
+- Form validation two ways: React `useState`, and **react-hook-form + zod**.
+
+## Tech Stack
+
+- React 18 + Vite
+- TailwindCSS v3
+- React Router
+- Redux Toolkit + React Redux
+- react-hook-form + zod
 
 ## How to Get Started
 
@@ -12,18 +29,24 @@
 
 ```bash
 git clone https://github.com/your-username/html-web-pages.git
+cd html-web-pages
 ```
 
-2. **Create an HTML file in the cloned project**
+2. **Install dependencies and run the dev server:**
 
 ```bash
-cd html-web-pages
-touch index.html
+npm install
+npm run dev
 ```
 
-3. **Assignment tasks**
+Then open the printed local URL (default `http://localhost:5173`).
 
-Follow the instructions provided in the [Classroom](https://classroom.google.com/u/1/c/NjgxMDAzMTQ1MzQ2/a/NjgxMTg5ODA2MTc1/details) to complete the assignment tasks.
+### Available scripts
+
+- `npm run dev` — start the dev server with hot reload
+- `npm run build` — build the production bundle into `dist/`
+- `npm run preview` — preview the production build locally
+- `npm run lint` — run ESLint
 
 ## Submitting Your Assignment
 
