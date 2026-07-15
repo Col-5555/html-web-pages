@@ -1,94 +1,34 @@
-# Project: Coders — CodeCLA Platform
+# CodeCLA — Coders & Managers
 
-A React application for the CodeCLA "Coders" platform, built up assignment by
-assignment. It now has all six original pages: authentication (sign-in /
-sign-up), the challenges home page with a light/dark theme, the workspace
-(coding lab), the leaderboard, and the profile page.
+This repository holds the two front-end applications built during the CLA
+bootcamp, as a small monorepo:
 
-Step-by-step walkthroughs of each stage live in
-[`reference/walkthroughs/`](./reference/walkthroughs):
+| App | Folder | Stack | What it is |
+| --- | --- | --- | --- |
+| **Coders** | [`coders-app/`](./coders-app) | Vite + React + Redux + Tailwind | The coder-facing platform: auth, challenges, workspace, leaderboard, profile. |
+| **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui + json-server | The admin dashboard for creating, editing, and deleting challenges. |
 
-- [`react-walkthrough.md`](./reference/walkthroughs/react-walkthrough.md) — auth
-  pages, routing, Redux, form validation.
-- [`challenges-walkthrough.md`](./reference/walkthroughs/challenges-walkthrough.md)
-  — the challenges home page, dummy data, and the Redux + Tailwind theme toggle.
-- [`workspace-walkthrough.md`](./reference/walkthroughs/workspace-walkthrough.md)
-  — the split-screen coding lab: markdown, CodeMirror, config dropdowns, and test
-  cases.
-- [`leaderboard-walkthrough.md`](./reference/walkthroughs/leaderboard-walkthrough.md)
-  — the leaderboard table of top coders.
-- [`profile-walkthrough.md`](./reference/walkthroughs/profile-walkthrough.md) —
-  the profile page: avatar upload, stats bars, and the coding-strikes heatmap.
-- Earlier static-site notes: `tailwind-walkthrough.md`, `javascript-walkthrough.md`.
-
-## What You'll Practice
-
-- Scaffolding a React app with **Vite** and **TailwindCSS**.
-- Client-side routing with **React Router** (`Link`, `Routes`, `Navigate`,
-  URL params via `useParams`).
-- Global state with **Redux Toolkit** (`createSlice`, `configureStore`).
-- Guarding pages with a **ProtectedRoute** component.
-- Form validation two ways: React `useState`, and **react-hook-form + zod**.
-- Composing a page from reusable **components** driven by dummy data.
-- Rendering lists and tables with `.map()`, icons with **react-icons**, and
-  CSS-only tooltips.
-- A **light/dark theme** toggle via a Redux slice + Tailwind class dark mode,
-  persisted to `localStorage`.
-- Drag-resizable **split** layouts, **markdown** rendering, and an embedded
-  **CodeMirror** editor.
-- File uploads with `URL.createObjectURL` image preview, and a themed
-  **heatmap** (`@uiw/react-heat-map`).
-
-## Tech Stack
-
-- React 18 + Vite
-- TailwindCSS v3 (class-based dark mode)
-- React Router
-- Redux Toolkit + React Redux
-- react-hook-form + zod
-- react-icons
-- react-split (resizable panes)
-- @uiw/react-codemirror + @codemirror/lang-javascript / -python (code editor)
-- @uiw/react-markdown-preview (markdown rendering)
-- @uiw/react-heat-map (submissions heatmap)
-
-## How to Get Started
-
-1. **Clone this repository:**
+Each app has its own `package.json` and dependencies — `cd` into the folder you
+want and run its scripts there.
 
 ```bash
-git clone https://github.com/your-username/html-web-pages.git
-cd html-web-pages
+# Coders app (Vite dev server)
+cd coders-app && npm install && npm run dev
+
+# Managers app (Next.js on :8080 + json-server on :3000)
+cd managers-app && npm install
+npm run db      # terminal 1 — json-server mock API
+npm run dev     # terminal 2 — Next.js dev server
 ```
 
-2. **Install dependencies and run the dev server:**
+## Documentation
 
-```bash
-npm install
-npm run dev
-```
+Assignment briefs and step-by-step walkthroughs live in
+[`reference/`](./reference) (see [`reference/walkthroughs/`](./reference/walkthroughs)).
 
-Then open the printed local URL (default `http://localhost:5173`).
+## Milestones
 
-### Available scripts
-
-- `npm run dev` — start the dev server with hot reload
-- `npm run build` — build the production bundle into `dist/`
-- `npm run preview` — preview the production build locally
-- `npm run lint` — run ESLint
-
-## Submitting Your Assignment
-
-- **Commit your changes:**
-  ```bash
-  git add -A
-  git commit -m "Your commit message"
-  ```
-- **Push your changes:**
-  ```bash
-  git push origin main
-  ```
-
-## About Code Labs Academy
-
-[Code Labs Academy](https://www.codelabsacademy.com/en) is an online coding school that offers bootcamps paired with one-on-one career coaching. Whether your goal is to change your career, acquire new skills, or launch your own start-up, our courses ranging from Cybersecurity to Data Science and AI, UI/UX Design, and Web Development will help you jump ahead!
+Each assignment submission is an annotated git tag — `git tag -n` lists them.
+The Coders app pages: `intro-and-authentication`, `challenges-page`,
+`workspace-page`, `leaderboard-page`, `profile-page`. The Managers app builds on
+top from here.

@@ -1,13 +1,25 @@
+# Monorepo root ignore — applies to both coders-app/ and managers-app/.
+# (Patterns without a leading slash match at any depth.)
+
+# Dependencies
+node_modules
+
+# Build output / caches
+dist
+dist-ssr
+build
+.next
+out
+.vite
+
 # Logs
 logs
 *.log
 npm-debug.log*
 
-# Dependencies
-node_modules
-dist
-dist-ssr
+# Env / local
 *.local
+.env*.local
 
 # Editor / OS
 .vscode/*
