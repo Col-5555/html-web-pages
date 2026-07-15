@@ -2,16 +2,21 @@
 
 A React application for the CodeCLA "Coders" platform, built up assignment by
 assignment. So far it has authentication (sign-in / sign-up), the challenges home
-page with a light/dark theme, and the workspace (coding lab).
+page with a light/dark theme, the workspace (coding lab), and the leaderboard.
 
-Step-by-step walkthroughs of each stage:
+Step-by-step walkthroughs of each stage live in
+[`reference/walkthroughs/`](./reference/walkthroughs):
 
-- [`react-walkthrough.md`](./react-walkthrough.md) — auth pages, routing, Redux,
-  form validation.
-- [`challenges-walkthrough.md`](./challenges-walkthrough.md) — the challenges home
-  page, dummy data, and the Redux + Tailwind theme toggle.
-- [`workspace-walkthrough.md`](./workspace-walkthrough.md) — the split-screen
-  coding lab: markdown, CodeMirror, config dropdowns, and test cases.
+- [`react-walkthrough.md`](./reference/walkthroughs/react-walkthrough.md) — auth
+  pages, routing, Redux, form validation.
+- [`challenges-walkthrough.md`](./reference/walkthroughs/challenges-walkthrough.md)
+  — the challenges home page, dummy data, and the Redux + Tailwind theme toggle.
+- [`workspace-walkthrough.md`](./reference/walkthroughs/workspace-walkthrough.md)
+  — the split-screen coding lab: markdown, CodeMirror, config dropdowns, and test
+  cases.
+- [`leaderboard-walkthrough.md`](./reference/walkthroughs/leaderboard-walkthrough.md)
+  — the leaderboard table of top coders.
+- Earlier static-site notes: `tailwind-walkthrough.md`, `javascript-walkthrough.md`.
 
 ## What You'll Practice
 
@@ -22,8 +27,8 @@ Step-by-step walkthroughs of each stage:
 - Guarding pages with a **ProtectedRoute** component.
 - Form validation two ways: React `useState`, and **react-hook-form + zod**.
 - Composing a page from reusable **components** driven by dummy data.
-- Rendering lists with `.map()`, icons with **react-icons**, and CSS-only
-  tooltips.
+- Rendering lists and tables with `.map()`, icons with **react-icons**, and
+  CSS-only tooltips.
 - A **light/dark theme** toggle via a Redux slice + Tailwind class dark mode,
   persisted to `localStorage`.
 - Drag-resizable **split** layouts, **markdown** rendering, and an embedded
