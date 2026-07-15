@@ -7,6 +7,7 @@ bootcamp, as a small monorepo:
 | --- | --- | --- | --- |
 | **Coders** | [`coders-app/`](./coders-app) | Vite + React + Redux + Tailwind | The coder-facing platform: auth, challenges, workspace, leaderboard, profile. |
 | **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui + json-server | The admin dashboard for creating, editing, and deleting challenges. |
+| **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi | The backend REST API (route/controller/service architecture; service layer stubbed for now). |
 
 Each app has its own `package.json` and dependencies — `cd` into the folder you
 want and run its scripts there.
@@ -19,6 +20,9 @@ cd coders-app && npm install && npm run dev
 cd managers-app && npm install
 npm run db      # terminal 1 — json-server mock API
 npm run dev     # terminal 2 — Next.js dev server
+
+# Coders API (Express on :4000)
+cd coders-app-api && npm install && npm run dev
 ```
 
 ## Documentation
@@ -33,4 +37,5 @@ The Coders app pages: `intro-and-authentication`, `challenges-page`,
 `workspace-page`, `leaderboard-page`, `profile-page`. The Managers app then
 builds in phases: `managers-auth` (signin/signup), `managers-dashboard` (the
 challenges table + delete), and `managers-challenge-form` (the two-pane
-create/edit form).
+create/edit form). The Coders API follows: `coders-api-auth` (auth + profile
+endpoints), with content-management and stats phases to come.

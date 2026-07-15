@@ -19,6 +19,7 @@ npm-debug.log*
 
 # Env / local
 *.local
+.env
 .env*.local
 
 # Editor / OS
