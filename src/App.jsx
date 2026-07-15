@@ -6,6 +6,7 @@ import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
+import Workspace from "./pages/Workspace";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Application routes.
@@ -30,6 +31,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<Home />} />
         <Route path="/challenges" element={<Home />} />
+        <Route path="/workspace/:challengeId" element={<Workspace />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/profile" element={<Profile />} />
       </Route>

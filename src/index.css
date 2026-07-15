@@ -8,3 +8,28 @@ body {
   margin: 0;
   padding: 0;
 }
+
+/* react-split: the horizontal split is a flex row; the vertical split stacks.
+   Gutters are the draggable dividers between panes. */
+.split-horizontal {
+  display: flex;
+  flex-direction: row;
+}
+
+.gutter {
+  background-color: rgba(0, 0, 0, 0.12);
+  background-repeat: no-repeat;
+  background-position: 50%;
+}
+
+.dark .gutter {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.gutter.gutter-horizontal {
+  cursor: col-resize;
+}
+
+.gutter.gutter-vertical {
+  cursor: row-resize;
+}

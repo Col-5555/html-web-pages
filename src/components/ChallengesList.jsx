@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import StatusIcon from "./StatusIcon";
 import DifficultyBadge from "./DifficultyBadge";
 
@@ -33,7 +34,14 @@ export default function ChallengesList({ challenges }) {
                 <td className="p-3">
                   <StatusIcon status={challenge.status} />
                 </td>
-                <td className="p-3">{challenge.title}</td>
+                <td className="p-3">
+                  <Link
+                    to={`/workspace/${challenge.id}`}
+                    className="hover:text-purple hover:underline"
+                  >
+                    {challenge.title}
+                  </Link>
+                </td>
                 <td className="p-3">{challenge.category}</td>
                 <td className="p-3">
                   <DifficultyBadge difficulty={challenge.difficulty} />

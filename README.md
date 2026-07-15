@@ -1,8 +1,8 @@
 # Project: Coders — CodeCLA Platform
 
 A React application for the CodeCLA "Coders" platform, built up assignment by
-assignment. So far it has authentication (sign-in / sign-up) and the challenges
-home page, with a light/dark theme.
+assignment. So far it has authentication (sign-in / sign-up), the challenges home
+page with a light/dark theme, and the workspace (coding lab).
 
 Step-by-step walkthroughs of each stage:
 
@@ -10,11 +10,14 @@ Step-by-step walkthroughs of each stage:
   form validation.
 - [`challenges-walkthrough.md`](./challenges-walkthrough.md) — the challenges home
   page, dummy data, and the Redux + Tailwind theme toggle.
+- [`workspace-walkthrough.md`](./workspace-walkthrough.md) — the split-screen
+  coding lab: markdown, CodeMirror, config dropdowns, and test cases.
 
 ## What You'll Practice
 
 - Scaffolding a React app with **Vite** and **TailwindCSS**.
-- Client-side routing with **React Router** (`Link`, `Routes`, `Navigate`).
+- Client-side routing with **React Router** (`Link`, `Routes`, `Navigate`,
+  URL params via `useParams`).
 - Global state with **Redux Toolkit** (`createSlice`, `configureStore`).
 - Guarding pages with a **ProtectedRoute** component.
 - Form validation two ways: React `useState`, and **react-hook-form + zod**.
@@ -23,6 +26,8 @@ Step-by-step walkthroughs of each stage:
   tooltips.
 - A **light/dark theme** toggle via a Redux slice + Tailwind class dark mode,
   persisted to `localStorage`.
+- Drag-resizable **split** layouts, **markdown** rendering, and an embedded
+  **CodeMirror** editor.
 
 ## Tech Stack
 
@@ -32,6 +37,9 @@ Step-by-step walkthroughs of each stage:
 - Redux Toolkit + React Redux
 - react-hook-form + zod
 - react-icons
+- react-split (resizable panes)
+- @uiw/react-codemirror + @codemirror/lang-javascript / -python (code editor)
+- @uiw/react-markdown-preview (markdown rendering)
 
 ## How to Get Started
 
