@@ -30,5 +30,7 @@ Assignment briefs and step-by-step walkthroughs live in
 
 Each assignment submission is an annotated git tag — `git tag -n` lists them.
 The Coders app pages: `intro-and-authentication`, `challenges-page`,
-`workspace-page`, `leaderboard-page`, `profile-page`. The Managers app builds on
-top from here.
+`workspace-page`, `leaderboard-page`, `profile-page`. The Managers app then
+builds in phases: `managers-auth` (signin/signup), `managers-dashboard` (the
+challenges table + delete), and `managers-challenge-form` (the two-pane
+create/edit form).

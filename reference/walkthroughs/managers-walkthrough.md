@@ -10,7 +10,9 @@ It's being built in phases. This document grows with each phase.
   shadcn/ui, Redux, and the signin/signup pages.
 - **Phase 2 — Dashboard**: the challenges table (server-component fetch), delete
   via a server action + `revalidatePath`, and the navbar.
-- Phase 3 — Challenge form (create/edit) — *coming next*.
+- **Phase 3 — Challenge form**: the two-pane create/edit form — a SimpleMDE
+  markdown editor, a CodeMirror code editor driven by Redux, a dynamic tests
+  builder, and create/update Server Actions.
 
 ---
 
@@ -237,9 +239,194 @@ Client Component because Logout dispatches Redux + navigates.
 
 ---
 
-## What's next
+> The Edit / New links point at Phase 3 pages, built next.
 
-Phase 3 builds the two-pane **ChallengeForm** (create + edit): title/category/level
-+ a **SimpleMDE** markdown editor on the left; function name + a **CodeMirror**
-editor (language/font in Redux) + a dynamic **tests** builder on the right;
-Create/Update via Server Actions with **sonner** toasts.
+---
+
+## Phase 3: The challenge form
+
+Phase 2 made the dashboard read and delete. Phase 3 adds the **create** and
+**edit** screens — one two-pane form that backs both routes:
+
+- `/challenges/new` — an empty form (create).
+- `/challenges/[id]/edit` — the same form, pre-filled from the fetched challenge.
+
+The left pane is the challenge's *details* (title, category, level, and a
+markdown description); the right pane is its *starter code* (function name, a
+code editor, and the tests to grade against).
+
+### One form, two routes
+
+The trick is a single `ChallengeForm` Client Component. Pass it a `challenge` to
+edit; pass nothing to create. A small helper turns either case into
+react-hook-form's default values:
+
+```jsx
+function toDefaults(challenge) {
+  const code = challenge?.code ?? {};
+  return {
+    title: challenge?.title ?? "",
+    category: challenge?.category ?? "",
+    level: challenge?.level ?? "Easy",
+    description: challenge?.description ?? "",
+    functionName: code.functionName ?? "",
+    body: code.body ?? "",
+    tests: challenge?.tests ?? [],
+  };
+}
+```
+
+The **create** page is a plain shell around the form. The **edit** page is a
+Server Component that fetches the record first — and in Next 16 the dynamic
+`params` is a **Promise**, so you `await` it:
+
+```jsx
+export default async function EditChallengePage({ params }) {
+  const { id } = await params;            // params is a Promise in Next 16
+  const challenge = await getChallenge(id);
+  // ...pass `challenge` to <ChallengeForm challenge={challenge} />
+}
+```
+
+### Validating with react-hook-form + zod
+
+Same stack as the auth forms, but bigger. The zod schema mirrors what gets
+stored, including an array of tests validated per-row:
+
+```js
+export const challengeSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  category: z.string().min(1, "Category is required"),
+  level: z.enum(["Easy", "Moderate", "Hard"]),
+  description: z.string().min(1, "Description is required"),
+  functionName: z.string().min(1, "Function name is required"),
+  body: z.string(),
+  tests: z.array(testSchema),
+});
+```
+
+Plain text inputs use `register("title")`. The custom widgets — the level
+`Select`, the markdown editor, the code editor — aren't native inputs, so they're
+wired through react-hook-form's **`Controller`**, which hands each a
+`value`/`onChange` pair:
+
+```jsx
+<Controller
+  control={control}
+  name="description"
+  render={({ field }) => (
+    <MarkdownField value={field.value} onChange={field.onChange} />
+  )}
+/>
+```
+
+### The markdown editor (client-only)
+
+The description uses **SimpleMDE** via `react-simplemde-editor`. SimpleMDE
+touches the DOM as it loads, so it can't be server-rendered — `next/dynamic` with
+**`ssr: false`** loads it on the client only (that option is only allowed inside
+a Client Component):
+
+```jsx
+"use client";
+import dynamic from "next/dynamic";
+import "easymde/dist/easymde.min.css";
+
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false,
+  loading: () => <div>Loading editor…</div>,
+});
+```
+
+One gotcha: memoise the `options` object (`useMemo`), or SimpleMDE re-initialises
+on every keystroke and the cursor jumps.
+
+### The code editor + Redux
+
+The right pane reuses the **Coders app's** approach: a **CodeMirror** editor
+(`@uiw/react-codemirror`) whose language and font size live in a Redux
+`workspace` slice. Two shadcn **dropdown menus** (`LanguageMenu`, `FontSizeMenu`)
+dispatch to that slice; the editor reads it:
+
+```jsx
+const { language, fontSize } = useSelector((s) => s.workspace);
+const languageExtension = language === "python" ? python() : javascript();
+const fontSizeExtension = EditorView.theme({ "&": { fontSize: `${fontSize}px` } });
+```
+
+The chosen `language` is also saved onto the challenge's `code`, so an edited
+challenge re-opens in the right language — a `useEffect` seeds the slice from the
+record when the edit form mounts.
+
+### The dynamic tests builder
+
+Each challenge grades submissions against a list of tests, and the manager can
+add or remove rows. react-hook-form's **`useFieldArray`** handles that:
+
+```jsx
+const { fields, append, remove } = useFieldArray({ control, name: "tests" });
+// append(EMPTY_TEST) on "Add test"; remove(index) on the row's trash button
+```
+
+Each row is `{ type, name, value, output, weight }` — `type` is a `string`/
+`number` `Select`, `weight` a 0–1 float. Because the rows are part of the same
+form, they validate together with everything else on submit.
+
+### Saving: two more Server Actions
+
+`src/app/actions.js` gains `createChallenge` and `updateChallenge` alongside the
+Phase 2 `deleteChallenge`. Create stamps `createdAt` and **POST**s; update
+**PUT**s; both `revalidatePath("/")` so the dashboard reflects the change:
+
+```js
+"use server";
+export async function createChallenge(data) {
+  const createdAt = new Date().toISOString().slice(0, 10);
+  const res = await fetch(`${API_URL}/challenges`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...data, createdAt }),
+  });
+  if (!res.ok) throw new Error("Failed to create challenge");
+  revalidatePath("/");
+}
+```
+
+The form calls the right action inside a `useTransition`, shows a **sonner**
+toast, and routes back to the dashboard:
+
+```jsx
+startTransition(async () => {
+  try {
+    isEdit ? await updateChallenge(challenge.id, payload)
+           : await createChallenge(payload);
+    toast.success(isEdit ? "Challenge updated" : "Challenge created");
+    router.push("/");
+  } catch {
+    toast.error("Failed to save challenge");
+  }
+});
+```
+
+Same division of labour as before: **the client validates and collects; the
+Server Action mutates and revalidates.**
+
+## Trying it out (Phase 3)
+
+With both servers running (`npm run db` + `npm run dev`) and signed in:
+
+1. Dashboard → **New Challenge** → the two-pane form at `/challenges/new`.
+2. Submit empty → zod errors under the required fields.
+3. Fill the left pane (title/category/level + markdown), the right pane (function
+   name + code), switch the editor **language** and **font size** (dropdowns),
+   and **Add test** a row or two.
+4. **Create challenge** → success toast → back on the dashboard with the new row.
+5. Click a row's **edit** (pencil) → the form re-opens pre-filled, editor in the
+   saved language → change something → **Save changes** → toast → updated row.
+6. `curl http://localhost:3457/challenges` → your new/edited record is persisted
+   (json-server writes back to `db.json`).
+
+> No browser driver ships with this environment, so the interactive flow above is
+> verified by `npm run build` / `npm run lint`, the routes serving 200, and the
+> json-server POST/PUT contract — not by clicking. Give it a click-through
+> yourself to confirm the UI.

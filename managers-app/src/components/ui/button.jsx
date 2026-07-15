@@ -44,13 +44,31 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  asChild = false,
+  render,
+  children,
   ...props
 }) {
+  // Base UI renders as a child element via the `render` prop, not radix's
+  // `asChild`. Support `asChild` (used across the app to wrap `<Link>`) by
+  // forwarding the child element as `render` so its props aren't leaked to the
+  // DOM. An explicit `render` prop still takes precedence.
+  const renderElement = render ?? (asChild ? children : undefined);
+
+  // When rendering as something other than a native <button> (e.g. a Link's
+  // <a>), tell Base UI so it doesn't warn about lost button semantics.
+  const nativeButton = !renderElement || renderElement?.type === "button";
+
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props} />
+      render={renderElement}
+      nativeButton={nativeButton}
+      {...props}
+    >
+      {renderElement ? undefined : children}
+    </ButtonPrimitive>
   );
 }
 
