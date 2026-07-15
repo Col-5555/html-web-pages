@@ -6,9 +6,10 @@ dashboard for creating, editing, and deleting coding challenges, built with
 
 It's being built in phases. This document grows with each phase.
 
-- **Phase 1 — Auth** (this section): monorepo restructure, project setup,
-  json-server, shadcn/ui, Redux, and the signin/signup pages.
-- Phase 2 — Dashboard (challenges table + delete) — *coming next*.
+- **Phase 1 — Auth**: monorepo restructure, project setup, json-server,
+  shadcn/ui, Redux, and the signin/signup pages.
+- **Phase 2 — Dashboard**: the challenges table (server-component fetch), delete
+  via a server action + `revalidatePath`, and the navbar.
 - Phase 3 — Challenge form (create/edit) — *coming next*.
 
 ---
@@ -158,8 +159,87 @@ npm run dev     # terminal 2 — Next.js on :8457
 
 ---
 
+---
+
+## Phase 2: Dashboard
+
+This is where Next.js earns its keep — the data lives on the **server**.
+
+### Fetching on the server
+
+The dashboard page (`src/app/page.js`) is an **async Server Component**. It just
+`await`s the data and renders — no `useEffect`, no loading state, no client fetch:
+
+```jsx
+export default async function Home() {
+  const challenges = await getChallenges();   // runs on the server
+  return (
+    <AuthGuard>
+      <Navbar />
+      <main><ChallengesList challenges={challenges} /></main>
+    </AuthGuard>
+  );
+}
+```
+
+`getChallenges` (`src/lib/api/challenges.js`) fetches from json-server with
+`{ cache: "no-store" }` so the list is always fresh, and returns `[]` if the API
+is down (so the page never crashes). This makes the route **dynamic** (rendered
+on demand), which you can see in the build output (`ƒ /`).
+
+### Mutating with a Server Action
+
+Deleting is a **Server Action** — an async function marked `"use server"` that
+runs on the server but is callable from the client (`src/app/actions.js`):
+
+```js
+"use server";
+import { revalidatePath } from "next/cache";
+
+export async function deleteChallenge(id) {
+  const res = await fetch(`${API_URL}/challenges/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("delete failed");
+  revalidatePath("/");   // tell Next the dashboard data changed → list reloads
+}
+```
+
+`revalidatePath("/")` is the key: after the delete, it invalidates the dashboard
+route so the server re-fetches and the table updates — no manual refetch.
+
+### Wiring the button
+
+The delete button is a small Client Component that calls the action inside a
+transition and reports the result with a **sonner** toast:
+
+```jsx
+"use client";
+const [isPending, startTransition] = useTransition();
+const handleDelete = () =>
+  startTransition(async () => {
+    try { await deleteChallenge(id); toast.success("Challenge deleted"); }
+    catch { toast.error("Failed to delete challenge"); }
+  });
+```
+
+This is the recurring App Router pattern: **Server Components fetch and render;
+Client Components handle interaction and call Server Actions.**
+
+### The table + navbar
+
+`ChallengesList` is a Server Component rendering a **shadcn `Table`** (Title,
+Category, Difficulty, Created at, Actions). Each row has an Edit link
+(`/challenges/[id]/edit`) and the delete button; a "New Challenge" link
+(`/challenges/new`) sits above it. The `Navbar` (Challenges link + Logout) is a
+Client Component because Logout dispatches Redux + navigates.
+
+> The Edit / New links point at Phase 3 pages that don't exist yet, so they 404
+> for now.
+
+---
+
 ## What's next
 
-Phase 2 builds the dashboard: a navbar, a shadcn table of challenges loaded via a
-**server action** from json-server, and per-row Edit/Delete (delete via a server
-action + `revalidatePath`).
+Phase 3 builds the two-pane **ChallengeForm** (create + edit): title/category/level
++ a **SimpleMDE** markdown editor on the left; function name + a **CodeMirror**
+editor (language/font in Redux) + a dynamic **tests** builder on the right;
+Create/Update via Server Actions with **sonner** toasts.
