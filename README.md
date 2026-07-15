@@ -1,8 +1,9 @@
 # Project: Coders — CodeCLA Platform
 
 A React application for the CodeCLA "Coders" platform, built up assignment by
-assignment. So far it has authentication (sign-in / sign-up), the challenges home
-page with a light/dark theme, the workspace (coding lab), and the leaderboard.
+assignment. It now has all six original pages: authentication (sign-in /
+sign-up), the challenges home page with a light/dark theme, the workspace
+(coding lab), the leaderboard, and the profile page.
 
 Step-by-step walkthroughs of each stage live in
 [`reference/walkthroughs/`](./reference/walkthroughs):
@@ -16,6 +17,8 @@ Step-by-step walkthroughs of each stage live in
   cases.
 - [`leaderboard-walkthrough.md`](./reference/walkthroughs/leaderboard-walkthrough.md)
   — the leaderboard table of top coders.
+- [`profile-walkthrough.md`](./reference/walkthroughs/profile-walkthrough.md) —
+  the profile page: avatar upload, stats bars, and the coding-strikes heatmap.
 - Earlier static-site notes: `tailwind-walkthrough.md`, `javascript-walkthrough.md`.
 
 ## What You'll Practice
@@ -33,6 +36,8 @@ Step-by-step walkthroughs of each stage live in
   persisted to `localStorage`.
 - Drag-resizable **split** layouts, **markdown** rendering, and an embedded
   **CodeMirror** editor.
+- File uploads with `URL.createObjectURL` image preview, and a themed
+  **heatmap** (`@uiw/react-heat-map`).
 
 ## Tech Stack
 
@@ -45,6 +50,7 @@ Step-by-step walkthroughs of each stage live in
 - react-split (resizable panes)
 - @uiw/react-codemirror + @codemirror/lang-javascript / -python (code editor)
 - @uiw/react-markdown-preview (markdown rendering)
+- @uiw/react-heat-map (submissions heatmap)
 
 ## How to Get Started
 

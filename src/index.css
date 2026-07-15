@@ -33,3 +33,9 @@ body {
 .gutter.gutter-vertical {
   cursor: row-resize;
 }
+
+/* Make the heatmap's month/weekday labels follow the theme text colour
+   (the coloured day cells keep their own inline fill). */
+.coding-strikes svg text {
+  fill: currentColor;
+}
