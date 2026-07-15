@@ -9,7 +9,8 @@ in phases. This document grows with each phase.
 
 - **Phase 1 — Auth & Profile**: project setup, the layered architecture, the Joi
   validation middleware, and the auth + profile endpoints.
-- Phase 2 — Content management (challenges + submissions) — *coming next*.
+- **Phase 2 — Content management**: challenges (create/list/by-id), categories,
+  and the grading submission endpoint — with deeply nested Joi validation.
 - Phase 3 — Leaderboard + system statistics — *coming later*.
 
 > **About the service layer:** the brief says services (which need a database)
@@ -171,8 +172,120 @@ curl localhost:4000/api/coders/999/profile        # → 404
 Expect `201`/`200` on the happy paths, `400` with Joi messages on bad input, and
 `404` for unknown ids or routes.
 
+---
+
+## Phase 2: Content Management + Grading
+
+Phase 2 adds the challenge catalogue and the submission endpoint. The pattern is
+now familiar — route → controller → service, Joi at the edge — so the new work is
+mostly a richer schema and a couple more stubs.
+
+### A deeply nested validator
+
+Challenge creation is where Joi earns its keep. The brief's payload nests a
+`code` object (function name + per-language code + typed inputs) and an array of
+weighted `tests`, so the schema is composed from small named pieces:
+
+```js
+const testSchema = Joi.object({
+  weight: Joi.number().min(0).max(1).required(),
+  inputs: Joi.array().items(
+    Joi.object({ name: Joi.string().min(1).required(), value: Joi.any().required() })
+  ).required(),
+  output: Joi.any().required(),   // any: could be a number, string, array…
+});
+
+export const createChallengeSchema = Joi.object({
+  title: Joi.string().min(1).required(),
+  category: Joi.string().min(1).required(),
+  description: Joi.string().min(1).required(),           // markdown
+  level: Joi.string().valid("Easy", "Moderate", "Hard").required(),
+  code: Joi.object({
+    function_name: Joi.string().min(1).required(),
+    code_text: Joi.array().items(codeTextSchema).min(1).required(),
+    inputs: Joi.array().items(inputSchema).required(),
+  }).required(),
+  tests: Joi.array().items(testSchema).min(1).required(),
+});
+```
+
+Because the same `validate` middleware runs with `abortEarly: false`, a bad
+request reports **every** problem at once, with **dotted paths** into the nested
+structure:
+
+```json
+{
+  "message": "Validation failed",
+  "errors": [
+    "\"level\" must be one of [Easy, Moderate, Hard]",
+    "\"code.code_text\" must contain at least 1 items",
+    "\"tests[0].weight\" must be less than or equal to 1"
+  ]
+}
+```
+
+### Query validation and dynamic categories
+
+The list endpoint accepts an optional `?category` filter, validated as a *query*
+(`validate(listChallengesQuerySchema, "query")`) — the coerced value is read from
+`req.validated.query`. Categories aren't a hard-coded list; the service derives
+them from whatever challenges exist, so a challenge in a new category makes that
+category appear automatically:
+
+```js
+export const listCategories = async () =>
+  [...new Set(challenges.map((c) => c.category))];
+```
+
+### The submission stub
+
+`POST /submissions` validates `{ lang: "py"|"js", code, challenge_id }`, then
+hands off to the grading service — which, until the real code-runner exists,
+returns a believable, deterministic mock (every test "passes", weighted score):
+
+```js
+export const gradeSubmission = async ({ lang, code, challenge_id }) => {
+  const tests = challenges.find((c) => c.id === challenge_id)?.tests ?? [];
+  const results = tests.map((t, i) => ({ test: i + 1, weight: t.weight, passed: true }));
+  return { challenge_id, lang, passed: results.length, total: tests.length,
+           score: results.reduce((s, r) => s + r.weight, 0), results,
+           message: "Grading is stubbed until the code-runner service is available." };
+};
+```
+
+### The endpoints (Phase 2)
+
+| Method | Path | Validation |
+| --- | --- | --- |
+| POST | `/api/challenges` | create-challenge middleware |
+| GET | `/api/challenges` | `?category` (query middleware) |
+| GET | `/api/challenges/:id` | — |
+| GET | `/api/categories` | — |
+| POST | `/api/submissions` | submission middleware |
+
+## Trying it out (Phase 2)
+
+```bash
+# List (optionally filter by category), fetch one, list categories
+curl localhost:4000/api/challenges
+curl "localhost:4000/api/challenges?category=Graphs"
+curl localhost:4000/api/challenges/146
+curl localhost:4000/api/categories
+
+# Create a challenge → 201 (then it shows up in the list + categories)
+curl -X POST localhost:4000/api/challenges -H 'Content-Type: application/json' -d '{
+  "title":"Palindrome","category":"Strings","description":"### Check palindrome","level":"Easy",
+  "code":{"function_name":"isPal","code_text":[{"language":"py","text":"def isPal(s): return True"}],"inputs":[{"name":"s","type":"string"}]},
+  "tests":[{"weight":1,"inputs":[{"name":"s","value":"racecar"}],"output":true}]
+}'
+
+# Submit code → 201 with a mock grade
+curl -X POST localhost:4000/api/submissions -H 'Content-Type: application/json' \
+  -d '{"lang":"py","code":"def twoSum(n,t): return [0,1]","challenge_id":"145"}'
+```
+
 ## What's next
 
-Phase 2 adds **content management** — create a challenge (validated against the
-brief's `code`/`tests` shape), list challenges with a `category` filter, fetch one
-by id, list categories — plus the **grading submission** endpoint.
+Phase 3 adds the **leaderboard** (full ranking + top-`k` with a validated query)
+and **system statistics** (solved-challenges, trending categories, and a heatmap
+filtered by `start_date`/`end_date`).
