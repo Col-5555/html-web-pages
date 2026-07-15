@@ -11,7 +11,8 @@ in phases. This document grows with each phase.
   validation middleware, and the auth + profile endpoints.
 - **Phase 2 — Content management**: challenges (create/list/by-id), categories,
   and the grading submission endpoint — with deeply nested Joi validation.
-- Phase 3 — Leaderboard + system statistics — *coming later*.
+- **Phase 3 — Leaderboard + system statistics**: ranked leaderboard, top-`k`,
+  solved-challenge stats, trending categories, and a date-filtered heatmap.
 
 > **About the service layer:** the brief says services (which need a database)
 > arrive in a later assignment. So here the services are **stubs that return
@@ -284,8 +285,98 @@ curl -X POST localhost:4000/api/submissions -H 'Content-Type: application/json' 
   -d '{"lang":"py","code":"def twoSum(n,t): return [0,1]","challenge_id":"145"}'
 ```
 
-## What's next
+---
 
-Phase 3 adds the **leaderboard** (full ranking + top-`k` with a validated query)
-and **system statistics** (solved-challenges, trending categories, and a heatmap
-filtered by `start_date`/`end_date`).
+## Phase 3: Leaderboard + System Statistics
+
+The final phase adds read-only analytics endpoints. No new architecture — it's
+the same layering — so the interesting parts are two more flavours of **query
+validation**.
+
+### Validating a query parameter: top-`k`
+
+The top-k endpoint needs `k` to be a **required positive integer**. Joi coerces
+the query string and enforces the bound; the route order matters too — the
+literal `/leaderboard/top` is declared *before* `/leaderboard` so it matches
+first:
+
+```js
+export const topKQuerySchema = Joi.object({
+  k: Joi.number().integer().min(1).required(),
+});
+
+router.get("/leaderboard/top", validate(topKQuerySchema, "query"), getTop);
+router.get("/leaderboard", getLeaderboard);
+```
+
+The controller reads the **coerced number** (not the raw string) from
+`req.validated.query`:
+
+```js
+export const getTop = async (req, res) => {
+  const { k } = req.validated.query;        // already a Number, thanks to Joi
+  res.status(200).json(await getTopCoders(k));
+};
+```
+
+So `?k=abc` → `400 "k must be a number"`, `?k=0` → `400 "k must be greater than
+or equal to 1"`, and a missing `k` → `400 "k is required"`.
+
+### An optional date range: the heatmap
+
+The heatmap accepts optional `start_date` / `end_date` ISO dates. The subtlety is
+the cross-field rule "end must not precede start" — which should only apply when
+`start_date` is actually present. A naive `end_date: Joi.date().min(Joi.ref("start_date"))`
+breaks on `?end_date=...` alone (the ref resolves to nothing). `when` fixes it:
+
+```js
+export const heatmapQuerySchema = Joi.object({
+  start_date: Joi.date().iso(),
+  end_date: Joi.date().iso().when("start_date", {
+    is: Joi.exist(),
+    then: Joi.date().iso().min(Joi.ref("start_date")),
+  }),
+});
+```
+
+The controller **extracts the filters and passes them to the service** (exactly
+as the brief asks); the service does the inclusive range filter:
+
+```js
+export const getHeatmap = async ({ start_date, end_date } = {}) =>
+  heatmap.filter((entry) => {
+    const date = new Date(entry.date);
+    if (start_date && date < start_date) return false;
+    if (end_date && date > end_date) return false;
+    return true;
+  });
+```
+
+### The endpoints (Phase 3)
+
+| Method | Path | Validation |
+| --- | --- | --- |
+| GET | `/api/leaderboard` | — |
+| GET | `/api/leaderboard/top` | `?k` required int (query middleware) |
+| GET | `/api/stats/solved-challenges` | — |
+| GET | `/api/stats/trending-categories` | — |
+| GET | `/api/stats/heatmap` | `?start_date`/`?end_date` (query middleware) |
+
+## Trying it out (Phase 3)
+
+```bash
+curl localhost:4000/api/leaderboard
+curl "localhost:4000/api/leaderboard/top?k=2"
+curl "localhost:4000/api/leaderboard/top?k=0"          # → 400
+curl localhost:4000/api/stats/solved-challenges
+curl localhost:4000/api/stats/trending-categories
+curl "localhost:4000/api/stats/heatmap?start_date=2026-07-05&end_date=2026-07-08"
+curl "localhost:4000/api/stats/heatmap?start_date=2026-07-10&end_date=2026-07-05"  # → 400
+```
+
+## Done
+
+That completes the Coders API brief — auth & profile, content management &
+grading, and leaderboard & statistics — all following the route → controller →
+service pattern with Joi validation, over a stubbed service layer that will be
+wired to real persistence in a later assignment.

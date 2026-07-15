@@ -37,8 +37,8 @@ src/
 
 ## Endpoints
 
-Base path: `/api`. Built so far — auth + profile (Phase 1) and content
-management + grading (Phase 2):
+Base path: `/api`. The full API — auth + profile (Phase 1), content management +
+grading (Phase 2), and leaderboard + statistics (Phase 3):
 
 | Method | Path | Body / Query |
 | --- | --- | --- |
@@ -55,7 +55,11 @@ management + grading (Phase 2):
 | GET | `/api/challenges/:id` | — |
 | GET | `/api/categories` | — |
 | POST | `/api/submissions` | `lang (py\|js), code, challenge_id` |
+| GET | `/api/leaderboard` | — |
+| GET | `/api/leaderboard/top` | `?k` (required positive integer) |
+| GET | `/api/stats/solved-challenges` | — |
+| GET | `/api/stats/trending-categories` | — |
+| GET | `/api/stats/heatmap` | `?start_date`, `?end_date` (optional ISO dates) |
 
-Leaderboard and statistics endpoints arrive in the final phase. A teaching
-walkthrough lives at
+A teaching walkthrough lives at
 [`reference/walkthroughs/coders-api-walkthrough.md`](../reference/walkthroughs/coders-api-walkthrough.md).
