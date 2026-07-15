@@ -39,4 +39,5 @@ builds in phases: `managers-auth` (signin/signup), `managers-dashboard` (the
 challenges table + delete), and `managers-challenge-form` (the two-pane
 create/edit form). The Coders API follows in three phases: `coders-api-auth` (auth + profile),
 `coders-api-content` (challenges + grading), and `coders-api-stats` (leaderboard
-+ system statistics).
++ system statistics). `database-design` adds the ER model for the platform (see
+[`reference/database-design.md`](./reference/database-design.md)).
