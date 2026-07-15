@@ -15,7 +15,7 @@ want and run its scripts there.
 # Coders app (Vite dev server)
 cd coders-app && npm install && npm run dev
 
-# Managers app (Next.js on :8080 + json-server on :3000)
+# Managers app (Next.js on :8457 + json-server on :3457)
 cd managers-app && npm install
 npm run db      # terminal 1 — json-server mock API
 npm run dev     # terminal 2 — Next.js dev server
