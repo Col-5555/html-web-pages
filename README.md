@@ -7,7 +7,7 @@ bootcamp, as a small monorepo:
 | --- | --- | --- | --- |
 | **Coders** | [`coders-app/`](./coders-app) | Vite + React + Redux + Tailwind | The coder-facing platform: auth, challenges, workspace, leaderboard, profile. |
 | **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui + json-server | The admin dashboard for creating, editing, and deleting challenges. |
-| **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi | The backend REST API (route/controller/service architecture; service layer stubbed for now). |
+| **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi + Mongoose/MongoDB | The backend REST API (route/controller/service architecture; Mongoose models + Atlas persistence, endpoint wiring next). |
 
 Each app has its own `package.json` and dependencies — `cd` into the folder you
 want and run its scripts there.
@@ -40,4 +40,6 @@ challenges table + delete), and `managers-challenge-form` (the two-pane
 create/edit form). The Coders API follows in three phases: `coders-api-auth` (auth + profile),
 `coders-api-content` (challenges + grading), and `coders-api-stats` (leaderboard
 + system statistics). `database-design` adds the ER model for the platform (see
-[`reference/database-design.md`](./reference/database-design.md)).
+[`reference/database-design.md`](./reference/database-design.md)), and
+`mongoose-models` implements it in the Coders API with MongoDB Atlas + Mongoose
+(models, connection, and startup seeding).

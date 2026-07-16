@@ -374,9 +374,109 @@ curl "localhost:4000/api/stats/heatmap?start_date=2026-07-05&end_date=2026-07-08
 curl "localhost:4000/api/stats/heatmap?start_date=2026-07-10&end_date=2026-07-05"  # → 400
 ```
 
-## Done
+## Done (API brief)
 
 That completes the Coders API brief — auth & profile, content management &
 grading, and leaderboard & statistics — all following the route → controller →
-service pattern with Joi validation, over a stubbed service layer that will be
-wired to real persistence in a later assignment.
+service pattern with Joi validation, over a stubbed service layer.
+
+---
+
+## Persistence: MongoDB + Mongoose
+
+A follow-up assignment ("Implementing Database Design") wires the
+[ER diagram](../database-design.md) to a real database with **MongoDB Atlas** and
+**Mongoose**. Scope here is the persistence layer itself — connection, models,
+and dummy data on startup; the endpoints still serve their mock data for now.
+
+### Connecting
+
+Config comes from the environment (`.env`, gitignored — see `.env.example`):
+`MONGODB_URI` (the Atlas `mongodb+srv://…` string) and `MONGODB_DB` (the database
+name). `src/config/db.js` is a thin wrapper:
+
+```js
+export async function connectDB() {
+  await mongoose.connect(process.env.MONGODB_URI, { dbName: process.env.MONGODB_DB });
+  console.log(`MongoDB connected → db "${mongoose.connection.name}"`);
+}
+```
+
+`src/index.js` connects and seeds **before** listening — and only when a URI is
+configured, so the app still boots without a database:
+
+```js
+if (process.env.MONGODB_URI) {
+  await connectDB();
+  await seedDatabase();
+}
+app.listen(PORT, ...);
+```
+
+### Modelling the ER diagram in Mongoose
+
+The relational ERD maps to MongoDB idiomatically — **embed** the parts that only
+exist inside a parent, **reference** the things that live on their own, and use
+**discriminators** for the supertype/subtype.
+
+**The User supertype → discriminators.** Coder and Manager share the account
+fields, so they're one `users` collection with a `role` discriminator key:
+
+```js
+const User = mongoose.model("User", userSchema);           // discriminatorKey: "role"
+const Coder = User.discriminator("Coder", new Schema({ description: String, score: Number }));
+const Manager = User.discriminator("Manager", new Schema({}));
+```
+
+A saved coder comes back with `role: "Coder"` and its `score`; a manager with
+`role: "Manager"`.
+
+**Challenge embeds its Code and TestCases.** In the ERD, `Code`, `CodeText`,
+`FunctionInputDefinition`, `TestCase` and `FunctionInputValue` are separate
+entities — but they only ever exist as part of a challenge, so in MongoDB they're
+**embedded subdocuments** (defined with `{ _id: false }`), not separate
+collections. `value`/`expected_output` are `Schema.Types.Mixed` because a test
+value can be a number, string, or array:
+
+```js
+const challengeSchema = new Schema({
+  title: String, category: String, description: String,
+  difficulty: { type: String, enum: ["Easy", "Moderate", "Hard"] },
+  manager: { type: ObjectId, ref: "Manager" },     // reference — managers live independently
+  code:  codeSchema,                                // embedded
+  tests: [testSchema],                              // embedded
+});
+```
+
+**Submission references Coder + Challenge.** Both exist independently, so the
+submission just holds `ObjectId` refs — which `populate()` can expand:
+
+```js
+Submission.findOne().populate("coder", "first_name").populate("challenge", "title");
+```
+
+### Seeding dummy data (idempotently)
+
+`src/seed/index.js` populates each collection **only when it's empty**
+(`countDocuments() === 0`), so restarting the server never duplicates data. It
+reuses the mock challenges from `src/data/challenges.js`, mapping them to the
+model shape (`level → difficulty`, `code_text.text → content`,
+`tests.output → expected_output`) and attaching the seeded manager:
+
+```
+First run:  Seeded dummy data: { managers: 1, coders: 2, challenges: 4, submissions: 1 }
+Next runs:  Seed: database already populated, skipping.
+```
+
+### Trying it out
+
+```bash
+cd coders-app-api
+cp .env.example .env          # then fill in MONGODB_URI + MONGODB_DB
+npm install
+npm run dev                   # connects to Atlas, seeds on first run, then listens
+```
+
+> Atlas note: your cluster's **Network Access** allowlist must include the IP
+> you're connecting from (or `0.0.0.0/0` for a learning project), or the connect
+> will fail on IP even with a correct URI.

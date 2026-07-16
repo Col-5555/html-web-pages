@@ -1,37 +1,50 @@
 # Coders App — Express.js API
 
 The backend REST API for the Coders platform, built with **Express 5** and
-**Joi**, using a **route → controller → service** architecture.
+**Joi**, using a **route → controller → service** architecture, with a
+**MongoDB (Atlas) + Mongoose** persistence layer.
 
-> The **service layer is stubbed** with mock data — the real persistence layer
-> arrives in a later assignment. Every endpoint still returns realistic JSON so
-> the routes, controllers, and validators can be exercised end-to-end.
+> The **endpoint service layer is still stubbed** with mock data. Mongoose models
+> and the ER design are implemented (`src/models/`) and seeded on startup; wiring
+> the endpoints to read/write MongoDB is the next assignment.
 
 ## Getting started
 
 ```bash
 cd coders-app-api
 npm install
-npm run dev     # Express on http://localhost:4000 (auto-reload via node --watch)
+cp .env.example .env    # fill in MONGODB_URI + MONGODB_DB (from your Atlas cluster)
+npm run dev             # connects to MongoDB, seeds dummy data on first run, then listens on :4000
 # or: npm start
 ```
 
-The port defaults to `4000`; override with `PORT` (`PORT=5000 npm start`) or by
-copying `.env.example` to `.env` (loaded automatically via
-`--env-file-if-exists`).
+`.env` (gitignored) supplies:
+
+| Var | Purpose |
+| --- | --- |
+| `PORT` | API port (default `4000`; override e.g. `PORT=5000 npm start`) |
+| `MONGODB_URI` | Atlas `mongodb+srv://…` connection string |
+| `MONGODB_DB` | database name (`ImpDatabaseDesign`) |
+
+If `MONGODB_URI` is unset the API still starts (endpoints serve mock data). The
+Atlas cluster's **Network Access** allowlist must include your IP.
 
 ## Project structure
 
 ```
 src/
-  index.js            server entry (listen)
+  index.js            server entry: connect DB + seed, then listen
   app.js              express app: json parser, /api routes, 404 + error handler
+  config/db.js        Mongoose connection (connectDB)
+  models/             Mongoose models — User (Coder/Manager discriminators),
+                        Challenge (embeds code + tests), Submission
+  seed/               idempotent dummy-data seeding on startup
   routes/             URL → controller wiring (+ validator middleware)
   controllers/        read request → call service → shape response
-  services/           STUBS returning mock data (persistence: later assignment)
+  services/           STUBS returning mock data (endpoint wiring: later assignment)
   validators/         Joi schemas
   middlewares/        validate factory + central error handler
-  data/               mock data
+  data/               mock data (also the seed source)
   utils/              asyncHandler, httpError
 ```
 
