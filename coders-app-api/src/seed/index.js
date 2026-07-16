@@ -1,8 +1,9 @@
 import { Coder, Manager, Challenge, Submission } from "../models/index.js";
 import { challenges as mockChallenges } from "../data/challenges.js";
 
-// Dummy passwords for seeded users — clearly not real (hashing/auth is a later
-// assignment). Never a real credential.
+// Dummy password shared by all seeded users — clearly not a real credential.
+// It's hashed automatically by the User model's pre-save hook, and seeded users
+// are created pre-verified so they can be used to demo login/authorization.
 const SEED_PASSWORD = "seed-not-a-real-password";
 
 // Map a mock challenge (src/data/challenges.js) into the Challenge model shape:
@@ -41,6 +42,7 @@ export async function seedDatabase() {
       last_name: "Hopper",
       email: "grace@codecla.dev",
       password: SEED_PASSWORD,
+      is_verified: true,
     });
     summary.managers = 1;
   }
@@ -54,6 +56,7 @@ export async function seedDatabase() {
         last_name: "Moukhfi",
         email: "omar@codecla.dev",
         password: SEED_PASSWORD,
+        is_verified: true,
         description: "Full-stack learner working through the CLA challenges.",
         score: 120,
       },
@@ -62,6 +65,7 @@ export async function seedDatabase() {
         last_name: "Smith",
         email: "alice@codecla.dev",
         password: SEED_PASSWORD,
+        is_verified: true,
         description: "Enjoys graph problems and clean recursion.",
         score: 80,
       },

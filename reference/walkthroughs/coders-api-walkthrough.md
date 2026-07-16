@@ -480,3 +480,181 @@ npm run dev                   # connects to Atlas, seeds on first run, then list
 > Atlas note: your cluster's **Network Access** allowlist must include the IP
 > you're connecting from (or `0.0.0.0/0` for a learning project), or the connect
 > will fail on IP even with a correct URI.
+
+---
+
+## Authentication
+
+The [Authentication assignment](../Project%20Authentication.pdf) finally makes the
+auth layer *real*. Until now `auth.service.js` was a stub returning a mock user
+and a fake token; the `User` model stored plaintext passwords. This phase adds:
+
+1. **Registration** that hashes the password (bcrypt) and emails a verification link.
+2. An **email-verification route** that flips `is_verified` to `true`.
+3. **Login** that rejects unverified / wrong-credential attempts and issues a JWT.
+4. An **`authorize(...roles)`** middleware to guard endpoints.
+
+Three small libraries do the heavy lifting: `bcryptjs` (hashing), `jsonwebtoken`
+(tokens), and `nodemailer` (email).
+
+### Hashing lives in the model, not the service
+
+Rather than hash in the service (and risk forgetting it somewhere), the password
+is hashed by a **pre-save hook** on the `User` schema. Because Mongoose runs
+base-schema hooks for the `Coder`/`Manager` discriminators too, both subtypes get
+hashing for free. The model also gains `is_verified`, a `comparePassword` helper,
+and a `toJSON` transform so the hash is never serialised into a response:
+
+```js
+userSchema.add({ is_verified: { type: Boolean, default: false } });
+
+// Note: an *async* pre-save hook resolves via its promise — it does NOT take
+// (and must not call) `next` in Mongoose 9, or you get "next is not a function".
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;      // only when it actually changed
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
+userSchema.methods.comparePassword = function (candidate) {
+  return bcrypt.compare(candidate, this.password);
+};
+```
+
+### Two token shapes, one secret
+
+Both JWTs are signed with `JWT_SECRET` (from `.env`), declared in one place
+(`src/utils/token.js`). The **verification** token encodes `{ id, role }` (per the
+brief); the **login** token encodes `{ id, email }` — *plus* `role`, so the
+authorization middleware can make role decisions:
+
+```js
+export const signVerifyToken = ({ id, role })        => jwt.sign({ id, role }, SECRET, { expiresIn: "1d" });
+export const signLoginToken  = ({ id, email, role }) => jwt.sign({ id, email, role }, SECRET, { expiresIn: "7d" });
+```
+
+> Design note: the PDF says the login token carries *id and email*. We add `role`
+> as well because `authorize(...roles)` needs it — but only `{ id, email }` is
+> ever exposed to route handlers via `req.user`. The role rides along in the token
+> for the guard; it doesn't leak into your controllers.
+
+### Register: before → after
+
+**Before** (stub) — invent an id and hand back a mock record:
+
+```js
+export const register = async ({ role, email }) => ({ id: nextId++, role, email });
+```
+
+**After** — reject duplicate emails, create through the right discriminator (the
+hook hashes the password), then email a verification link:
+
+```js
+export const register = async ({ role, first_name, last_name, email, password }) => {
+  if (await User.findOne({ email })) throw httpError(409, "…already exists");
+
+  const Model = role === "manager" ? Manager : Coder;
+  const user  = await Model.create({ first_name, last_name, email, password });
+
+  const token     = signVerifyToken({ id: user.id, role: user.role });
+  const verifyUrl = `${APP_URL}/api/auth/verify?token=${token}`;
+  const emailPreviewUrl = await sendVerificationEmail(user, verifyUrl);   // Ethereal in dev
+  return { user, emailPreviewUrl };
+};
+```
+
+### Email without a real mail server
+
+`src/utils/mailer.js` uses **nodemailer**. In production it reads SMTP creds from
+the environment; in development — when no `SMTP_HOST` is set — it falls back to a
+throwaway **Ethereal** test account. Ethereal doesn't deliver mail; it captures it
+and returns a browser **preview URL**, which the server logs alongside the raw
+verify link so you can complete the flow with `curl`:
+
+```
+Verification email sent to test.coder@example.com
+  Verify link : http://localhost:4000/api/auth/verify?token=eyJhbGciOiJ…
+  Email preview: https://ethereal.email/message/…
+```
+
+### The verification route returns HTML
+
+Because a user reaches it by clicking a link in their inbox, the verify route
+renders a small **HTML page** (the brief allows this) rather than JSON. It decodes
+the token, finds the user by the encoded id, flips `is_verified`, and is
+idempotent (re-clicking a used-but-valid link still succeeds):
+
+```js
+export const verifyEmail = async (token) => {
+  const { id } = verifyToken(token);              // throws → rendered as an error page
+  const user = await User.findById(id);
+  if (!user.is_verified) { user.is_verified = true; await user.save(); }
+  return user;
+};
+```
+
+### Login: verified + correct, or a clear error
+
+Login finds the user by email, and returns the **same 401** for "no such user",
+"wrong password", and "wrong user type" (so we don't leak which emails exist).
+Unverified accounts get a distinct **403**; success issues the login JWT:
+
+```js
+if (!user || user.role.toLowerCase() !== role) throw httpError(401, "Invalid email or password");
+if (!(await user.comparePassword(password)))   throw httpError(401, "Invalid email or password");
+if (!user.is_verified)                          throw httpError(403, "Please verify your email…");
+return { token: signLoginToken({ id: user.id, email: user.email, role: user.role }), user };
+```
+
+### The `authorize(...roles)` guard
+
+A middleware **creator**: call it with the roles a route allows, and it returns an
+Express middleware that reads the `Authorization: Bearer <jwt>` header, verifies
+the token, checks the role, and injects `{ id, email }` onto `req.user`:
+
+```js
+export const authorize = (...roles) => (req, res, next) => {
+  const [scheme, token] = (req.headers.authorization || "").split(" ");
+  if (scheme !== "Bearer" || !token) throw httpError(401, "Missing … Authorization header");
+
+  let payload;
+  try { payload = verifyToken(token); } catch { throw httpError(401, "Invalid or expired token"); }
+  if (roles.length && !roles.includes(payload.role)) throw httpError(403, "…insufficient role");
+
+  req.user = { id: payload.id, email: payload.email };    // identity only — not the role
+  next();
+};
+```
+
+Two demo routes show it off without touching the earlier phases' endpoints:
+`GET /api/auth/me` (`authorize()` — any logged-in user, echoes `req.user`) and
+`GET /api/auth/managers-only` (`authorize("Manager")` — a Coder's token gets a 403).
+
+### Trying it out (Authentication)
+
+```bash
+cd coders-app-api
+# .env needs JWT_SECRET and APP_URL in addition to the Mongo vars (see .env.example)
+npm install
+npm run dev
+
+# 1) Register → 201; note the emailPreviewUrl and watch the log for the verify link
+curl -s -X POST localhost:4000/api/auth/coders/register -H 'Content-Type: application/json' \
+  -d '{"first_name":"Test","last_name":"Coder","email":"test.coder@example.com","password":"secret123"}'
+
+# 2) Login before verifying → 403
+curl -s -X POST localhost:4000/api/auth/coders/login -H 'Content-Type: application/json' \
+  -d '{"email":"test.coder@example.com","password":"secret123"}'
+
+# 3) Open the "Verify link" from the server log → HTML "Account verified ✅"; is_verified is now true
+# 4) Login again → 200 with a JWT; save it as $JWT
+
+# 5) The guard: identity in, role enforced
+curl -s localhost:4000/api/auth/me                     # 401 (no token)
+curl -s localhost:4000/api/auth/me          -H "Authorization: Bearer $JWT"   # 200 {user:{id,email}}
+curl -s localhost:4000/api/auth/managers-only -H "Authorization: Bearer $JWT" # 403 for a Coder
+```
+
+> Seed note: seeded users are now created **pre-verified** with hashed passwords,
+> so they're login-ready — but the seed only inserts into an *empty* collection.
+> If your database was seeded before this phase, those older rows keep their
+> plaintext/unverified state; the reliable demo path is **register → verify → login**.

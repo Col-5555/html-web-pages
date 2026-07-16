@@ -10,8 +10,11 @@
     "dev": "node --env-file-if-exists=.env --watch src/index.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "express": "^5.1.0",
     "joi": "^17.13.3",
-    "mongoose": "^9.7.4"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.4",
+    "nodemailer": "^9.0.3"
   }
 }
