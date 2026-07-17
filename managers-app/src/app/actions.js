@@ -1,29 +1,36 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { API_URL } from "@/lib/api/challenges";
+import { API_URL, authHeader } from "@/lib/api/challenges";
+import { toApi } from "@/lib/api/challengeMapping";
 
-// Server Actions for mutating challenges. These run on the server and are called
-// from Client Components; each revalidates the dashboard so its list reflects
-// the change on the next visit.
+// Server Actions for mutating challenges on the NestJS backend. They run on the
+// server, attach the manager's Bearer token, map the form payload to the API
+// shape, and revalidate the dashboard so its list reflects the change.
+
+// JSON headers plus the manager's Authorization token.
+async function jsonAuthHeaders() {
+  return { "Content-Type": "application/json", ...(await authHeader()) };
+}
 
 // Delete a challenge, then revalidate the dashboard so the list reloads.
 export async function deleteChallenge(id) {
-  const res = await fetch(`${API_URL}/challenges/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_URL}/challenges/${id}`, {
+    method: "DELETE",
+    headers: await authHeader(),
+  });
   if (!res.ok) {
     throw new Error(`Failed to delete challenge ${id}`);
   }
   revalidatePath("/");
 }
 
-// Create a challenge. The form sends the edited fields; the server stamps
-// `createdAt` (json-server assigns the id) and POSTs it.
+// Create a challenge (NestJS assigns the id and stamps timestamps).
 export async function createChallenge(data) {
-  const createdAt = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const res = await fetch(`${API_URL}/challenges`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...data, createdAt }),
+    headers: await jsonAuthHeaders(),
+    body: JSON.stringify(toApi(data)),
   });
   if (!res.ok) {
     throw new Error("Failed to create challenge");
@@ -31,13 +38,12 @@ export async function createChallenge(data) {
   revalidatePath("/");
 }
 
-// Update an existing challenge (PUT replaces the record). The form passes the
-// original `createdAt` through so it survives the edit.
+// Update an existing challenge (NestJS uses PATCH, scoped to the owning manager).
 export async function updateChallenge(id, data) {
   const res = await fetch(`${API_URL}/challenges/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...data, id }),
+    method: "PATCH",
+    headers: await jsonAuthHeaders(),
+    body: JSON.stringify(toApi(data)),
   });
   if (!res.ok) {
     throw new Error(`Failed to update challenge ${id}`);

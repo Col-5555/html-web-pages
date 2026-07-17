@@ -505,3 +505,58 @@ curl -si -X POST localhost:8457/api/auth/signin -H 'Content-Type: application/js
   -d '{"email":"m@example.com","password":"secret123"}'   # 200 { token, user } + Set-Cookie: token=…
 # Before verifying → 403; wrong password → 401; duplicate signup → 409 — all relayed from Express.
 ```
+
+### Challenges through the NestJS API
+
+The challenge data layer swaps json-server for the NestJS backend, and the token rides
+along on every call. `getChallenges`/`getChallenge` read the token cookie and send it as a
+Bearer header (server-side, via `cookies()`), and the server actions do the same for
+create/update/delete:
+
+```js
+// src/lib/api/challenges.js
+export async function authHeader() {
+  const token = (await cookies()).get("token")?.value;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+export async function getChallenges() {
+  const res = await fetch(`${API_URL}/challenges`, { cache: "no-store", headers: await authHeader() });
+  return res.ok ? (await res.json()).map(fromApi) : [];   // 401/down → empty list, no crash
+}
+```
+
+Create/update send `toApi(data)`; delete just needs the header. Note the method change:
+NestJS updates with **PATCH** (scoped to the owning manager), where json-server used PUT.
+
+### The shape mapper is the real work
+
+The form and the API disagree on names, nesting, and types, so a single module
+(`src/lib/api/challengeMapping.js`) translates both directions — which lets the pages,
+the table, and the two-pane form stay **completely unchanged**:
+
+| form / list | NestJS API |
+| --- | --- |
+| `id`, `level`, `createdAt` (YYYY-MM-DD) | `_id`, `difficulty`, `createdAt` (ISO) |
+| `code.functionName` / `language` (`javascript`) / `body` | `code.function_name` / `code_text[].language` (`js`) / `content`\|`text` |
+| `tests[{ type, name, value, output, weight }]` (strings) | `tests[{ weight, inputs:[{name,value}], expected_output }]` (JSON) |
+
+`toApi` also **coerces** each test's value/output to a number when its `type` is
+`"number"`, derives the function's `code.inputs` from the test names, and maps the editor
+language (`javascript`→`js`); `fromApi` reverses all of it (inferring `type` from
+`typeof value`, formatting the date, `js`→`javascript`). Because value/output are stored
+as real JSON but edited as text, `fromApi` stringifies them back for the inputs.
+
+### Trying it out (Phase 4 — challenges)
+
+```bash
+# Express :4000, NestJS :4100, managers-app :8457, signed in as a verified manager.
+# The dashboard (GET /) lists that manager's challenges from NestJS; New/Edit/Delete
+# go through the server actions to NestJS with the Bearer token.
+```
+
+> Honesty note: no browser driver here, so the create→list→edit→delete flow was verified
+> by (a) `npm run build`, (b) a `toApi`/`fromApi` round-trip unit check, and (c) driving
+> the **real** NestJS API with a real manager token through the mapper — CREATE 201, the
+> list/edit shapes matching what the table and form read, PATCH updating the difficulty,
+> the `javascript`↔`python` language round-tripping, and DELETE then 404. The final UI
+> click-through is left for you to confirm in a browser.

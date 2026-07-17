@@ -61,4 +61,6 @@ the NestJS `managers-app-api` (challenge CRUD over the shared database), and
 that verifies the manager's Express-issued JWT with the shared secret. Finally,
 `managers-integration-auth` connects the Next.js `managers-app` to those real
 backends: signup/signin route handlers (Axios → Express) with the token stored in
-Redux + a cookie, replacing the mock auth.
+Redux + a cookie, replacing the mock auth; and `managers-integration-challenges`
+points the challenge data layer + server actions at the NestJS API (Bearer token,
+with a form↔API shape mapper), retiring json-server entirely.
