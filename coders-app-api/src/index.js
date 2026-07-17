@@ -1,3 +1,8 @@
+// Load the environment (.env.test/.dev/.prod based on APP_ENV) BEFORE anything
+// else — config/auth.js and friends read process.env at import time. See
+// config/env.js for why this must be the first import.
+import "./config/env.js";
+
 import { createApp } from "./app.js";
 import { connectDB } from "./config/db.js";
 import { seedDatabase } from "./seed/index.js";

@@ -21,6 +21,11 @@ npm-debug.log*
 *.local
 .env
 .env*.local
+# Per-environment files (.env.test / .env.dev / .env.prod) hold real credentials —
+# ignore them all, but keep the committed *.example templates.
+.env.*
+!.env.example
+!.env.*.example
 
 # Editor / OS
 .vscode/*
