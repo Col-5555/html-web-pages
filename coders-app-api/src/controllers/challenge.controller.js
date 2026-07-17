@@ -1,22 +1,24 @@
 import * as challengeService from "../services/challenge.service.js";
 
-// Create a challenge. The create validator middleware has sanitised the body
-// onto req.validated.body.
+// Create a challenge. The route is guarded to Managers, so req.user.id is the
+// authoring manager. The create validator sanitised the body onto
+// req.validated.body.
 export const create = async (req, res) => {
-  const challenge = await challengeService.createChallenge(req.validated.body);
+  const challenge = await challengeService.createChallenge(req.validated.body, req.user.id);
   res.status(201).json({ message: "Challenge created", challenge });
 };
 
-// List challenges, optionally filtered by ?category (validated as a query).
+// List challenges (role-aware — see the service), optionally filtered by
+// ?category. Every challenge carries a solution_rate; coders also get a status.
 export const list = async (req, res) => {
   const { category } = req.validated?.query ?? {};
-  const challenges = await challengeService.listChallenges({ category });
+  const challenges = await challengeService.listChallenges(req.user.id, { category });
   res.status(200).json(challenges);
 };
 
-// Fetch one challenge by id (404 if missing, thrown by the service).
+// Fetch one challenge by id (404 if missing / not visible to the requester).
 export const getById = async (req, res) => {
-  const challenge = await challengeService.getChallenge(req.params.id);
+  const challenge = await challengeService.getChallenge(req.params.id, req.user.id);
   res.status(200).json(challenge);
 };
 

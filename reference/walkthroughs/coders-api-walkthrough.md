@@ -658,3 +658,91 @@ curl -s localhost:4000/api/auth/managers-only -H "Authorization: Bearer $JWT" # 
 > so they're login-ready — but the seed only inserts into an *empty* collection.
 > If your database was seeded before this phase, those older rows keep their
 > plaintext/unverified state; the reliable demo path is **register → verify → login**.
+
+---
+
+## Express Services — real, DB-backed services
+
+The [Express Services assignment](../Project%20Express%20Services.pdf) replaces the
+last of the **stubbed** services with real database logic and guards the routes with
+the `authorize(...roles)` middleware. It's staged in three phases; this section grows
+one part at a time.
+
+### Phase 1 — Profile management & Content management
+
+**Role from the token, identity from the database.** `authorize(...roles)` checks the
+role encoded in the JWT and injects only `{ id, email }` onto `req.user`. So a guard
+like `authorize("Manager")` needs nothing else — but any handler whose *logic* branches
+on role (challenge listing) looks the user up by id, treating the database as the source
+of truth rather than trusting a role we deliberately didn't inject:
+
+```js
+const requester = await User.findById(requesterId);   // → a Coder or Manager instance
+const filter = requester.role === "Manager" ? { manager: requesterId } : {};
+```
+
+**Profiles are private to their owner.** Every profile route is guarded to its role, and
+the controller adds an ownership check — the `:id` in the path must equal the token's id:
+
+```js
+const assertOwnership = (req) => {
+  if (req.params.id !== req.user.id) throw httpError(403, "You can only access your own profile");
+};
+```
+
+For a coder, the profile also carries a **rank** — one plus the number of coders who
+outscore them:
+
+```js
+const rank = 1 + (await Coder.countDocuments({ score: { $gt: user.score } }));
+```
+
+> Discriminator gotcha: updating a coder's bio writes the **Coder-only** `description`
+> path. `User.findByIdAndUpdate(...)` (the *base* model) silently drops it under strict
+> mode, because the base schema doesn't declare `description`. Update through the
+> **discriminator** model instead — `Coder.findByIdAndUpdate(...)` — which knows the path.
+> (The update validator's `about` field maps onto `description`.)
+
+**Challenges: create, then list by role.** Creation is Managers-only and reuses the same
+payload mapping the seed uses (`level → difficulty`, `code_text[].text → content`,
+`tests[].output → expected_output`), attaching the author from the token. Listing is
+role-aware and decorated:
+
+- **Managers** see only the challenges they authored; **coders** see all of them.
+- Every challenge gets a **`solution_rate`** — the percentage of *all* coders who have a
+  passing submission for it — computed in one aggregation rather than a query per row:
+
+  ```js
+  Submission.aggregate([
+    { $match: { passed: true, challenge: { $in: ids } } },
+    { $group: { _id: "$challenge", solvers: { $addToSet: "$coder" } } },  // distinct coders
+    { $project: { count: { $size: "$solvers" } } },
+  ]);
+  // rate = round(count / totalCoders * 100)
+  ```
+
+- **Coders** additionally get a per-challenge **`status`** from their own submissions:
+  `Waiting` (none), `Attempted` (submitted, none passed), `Completed` (a passing one).
+
+Categories come straight from the database with `Challenge.distinct("category")`.
+
+#### Trying it out (Phase 1)
+
+```bash
+# Register + verify a manager and a coder (see the Authentication section), then log in
+# to get $MGR and $COD bearer tokens and their ids $MGR_ID / $COD_ID.
+
+# Managers-only creation (a coder's token → 403, no token → 401):
+curl -s -X POST localhost:4000/api/challenges -H "Authorization: Bearer $MGR" \
+  -H 'Content-Type: application/json' -d @challenge.json          # 201
+
+# Role-aware listing:
+curl -s localhost:4000/api/challenges -H "Authorization: Bearer $MGR"   # only the manager's own
+curl -s localhost:4000/api/challenges -H "Authorization: Bearer $COD"   # all + status + solution_rate
+curl -s localhost:4000/api/categories -H "Authorization: Bearer $COD"   # ["Math", ...]
+
+# Own-profile only (someone else's id → 403); a coder's profile includes rank:
+curl -s localhost:4000/api/coders/$COD_ID/profile -H "Authorization: Bearer $COD"
+curl -s -X PATCH localhost:4000/api/coders/$COD_ID/profile -H "Authorization: Bearer $COD" \
+  -H 'Content-Type: application/json' -d '{"about":"loves recursion"}'   # → description updated
+```

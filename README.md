@@ -44,4 +44,8 @@ create/edit form). The Coders API follows in three phases: `coders-api-auth` (au
 `mongoose-models` implements it in the Coders API with MongoDB Atlas + Mongoose
 (models, connection, and startup seeding). `authentication` then makes auth real:
 bcrypt password hashing, JWT-based email verification (via nodemailer/Ethereal in
-dev), login, and an `authorize(...roles)` middleware guarding endpoints.
+dev), login, and an `authorize(...roles)` middleware guarding endpoints. Finally,
+the **Express Services** brief replaces the remaining stubbed services with real
+DB-backed logic in phases: `express-services-content` (role-aware challenge
+create/list with `solution_rate` + per-coder `status`, categories, and
+own-profile management with coder rank).
