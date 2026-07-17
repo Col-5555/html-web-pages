@@ -7,7 +7,7 @@ bootcamp, as a small monorepo:
 | --- | --- | --- | --- |
 | **Coders** | [`coders-app/`](./coders-app) | Vite + React + Redux + Tailwind | The coder-facing platform: auth, challenges, workspace, leaderboard, profile. |
 | **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui + json-server | The admin dashboard for creating, editing, and deleting challenges. |
-| **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi + Mongoose/MongoDB | The backend REST API (route/controller/service architecture; Mongoose models + Atlas persistence; real auth — bcrypt, JWT, email verification, and an `authorize(...roles)` guard). |
+| **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi + Mongoose/MongoDB | The backend REST API (route/controller/service architecture). Fully DB-backed: Mongoose models + Atlas persistence, real auth (bcrypt, JWT, email verification, `authorize(...roles)` guard), role-aware content management, submission grading via an external code runner, and leaderboard/statistics via aggregation pipelines. |
 
 Each app has its own `package.json` and dependencies — `cd` into the folder you
 want and run its scripts there.
@@ -48,6 +48,8 @@ dev), login, and an `authorize(...roles)` middleware guarding endpoints. Finally
 the **Express Services** brief replaces the remaining stubbed services with real
 DB-backed logic in phases: `express-services-content` (role-aware challenge
 create/list with `solution_rate` + per-coder `status`, categories, and
-own-profile management with coder rank) and `express-services-grading` (coder-only
+own-profile management with coder rank), `express-services-grading` (coder-only
 submission grading via an external code runner, with score updates and
-already-solved protection).
+already-solved protection), and `express-services-stats` (coders-only leaderboard,
+top-k, solved-challenge/trending-category/heatmap analytics via MongoDB
+aggregation pipelines).

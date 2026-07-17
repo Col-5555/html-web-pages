@@ -825,3 +825,81 @@ curl -s -X POST localhost:4000/api/submissions -H "Authorization: Bearer $COD" \
 > service, so this was verified with `curl` against the real runner (pass / fail /
 > syntax-error, plus the 409/403/401/404 paths). If the runner is cold or down, the
 > endpoint returns 502/504 by design rather than hanging.
+
+### Phase 3 — Leaderboard & System statistics
+
+The last phase is all **read models** built with the MongoDB **aggregation pipeline** —
+the right tool when the answer is a roll-up across collections. Every route here is
+coders-only (`authorize("Coder")`).
+
+**A discriminator gotcha with aggregate.** `Coder.find()` quietly adds `role: "Coder"`
+to the query, but `Coder.aggregate()` does **not** — an aggregation runs against the raw
+`users` collection. So the leaderboard pipeline matches the role itself, then sorts, then
+counts each coder's distinct solved challenges with a correlated `$lookup`:
+
+```js
+Coder.aggregate([
+  { $match: { role: "Coder" } },                 // aggregate() won't add this for us
+  { $sort: { score: -1 } },
+  { $lookup: {                                   // distinct challenges this coder passed
+      from: "submissions",
+      let: { coderId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $and: [{ $eq: ["$coder", "$$coderId"] }, { $eq: ["$passed", true] }] } } },
+        { $group: { _id: "$challenge" } },
+      ],
+      as: "solved",
+  } },
+  { $addFields: { solved_challenges: { $size: "$solved" } } },
+  { $project: { solved: 0, password: 0, __v: 0 } },
+]);
+```
+
+Top-k is the same pipeline with a `$limit: k` after the sort.
+
+**Solved-challenges stats** answer, per coder, "how many challenges of each difficulty
+exist, and how many have I solved?" — two aggregations (one platform-wide count by
+difficulty, one over the coder's distinct passing submissions joined to their
+challenges), assembled into the brief's exact key names
+(`totalEasySolvedChallenges` … `totalHardChallenges`).
+
+**Trending categories** is the pipeline the brief spells out, verbatim in stages — keep
+only passing submissions, join each to its challenge, group-and-count by category, then
+surface/sort/project:
+
+```js
+Submission.aggregate([
+  { $match: { passed: true } },
+  { $lookup: { from: "challenges", localField: "challenge", foreignField: "_id", as: "challenge" } },
+  { $unwind: "$challenge" },
+  { $group: { _id: "$challenge.category", count: { $sum: 1 } } },
+  { $addFields: { category: "$_id" } },
+  { $sort: { count: -1 } },
+  { $project: { _id: 0, category: 1, count: 1 } },
+]);
+```
+
+**The heatmap** counts a coder's passing submissions per day. Missing bounds default to
+"the last year" (`end = now`, `start = now − 1yr`), and `$dateToString` formats the
+`submitted_at` timestamp into the `YYYY/mm/dd` buckets the front-end heat-map expects:
+
+```js
+{ $match: { coder, passed: true, submitted_at: { $gte: start, $lte: end } } },
+{ $addFields: { date: { $dateToString: { format: "%Y/%m/%d", date: "$submitted_at" } } } },
+{ $group: { _id: "$date", count: { $sum: 1 } } },
+```
+
+#### Trying it out (Phase 3)
+
+```bash
+# $COD is a coder token, $MGR a manager token (managers get 403 on all of these).
+curl -s localhost:4000/api/leaderboard          -H "Authorization: Bearer $COD"  # sorted, + solved_challenges
+curl -s "localhost:4000/api/leaderboard/top?k=2" -H "Authorization: Bearer $COD"
+curl -s localhost:4000/api/stats/solved-challenges   -H "Authorization: Bearer $COD"
+curl -s localhost:4000/api/stats/trending-categories -H "Authorization: Bearer $COD"
+curl -s localhost:4000/api/stats/heatmap             -H "Authorization: Bearer $COD"  # default: last year
+curl -s "localhost:4000/api/stats/heatmap?start_date=2026-01-01&end_date=2026-12-31" -H "Authorization: Bearer $COD"
+```
+
+That completes the Express Services brief: every endpoint now reads and writes real data,
+guarded by role, with the heavier reports expressed as aggregation pipelines.
