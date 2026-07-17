@@ -57,4 +57,6 @@ submission grading via an external code runner, with score updates and
 already-solved protection), and `express-services-stats` (coders-only leaderboard,
 top-k, solved-challenge/trending-category/heatmap analytics via MongoDB
 aggregation pipelines). A second backend then begins: `managers-nest-crud` starts
-the NestJS `managers-app-api` (challenge CRUD over the shared database).
+the NestJS `managers-app-api` (challenge CRUD over the shared database), and
+`managers-nest-auth` guards it — a `@Roles`/`AuthGuard`/`@AuthenticatedUser` stack
+that verifies the manager's Express-issued JWT with the shared secret.

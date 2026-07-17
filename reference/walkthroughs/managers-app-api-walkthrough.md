@@ -109,3 +109,90 @@ curl -s -X PATCH localhost:4100/challenges/$ID -H "x-manager-id:$MID" \
 curl -s -X DELETE localhost:4100/challenges/$ID -H "x-manager-id:$MID"
 # A different x-manager-id, or a bad id → 404; an invalid body → 400 with the failing rules.
 ```
+
+## Phase 2 — Authentication & Authorization
+
+The `x-manager-id` header was a stand-in. Now the manager's identity comes from a **JWT
+minted by the Express backend** — this app only *verifies* it. Three small pieces plus one
+guard replace the placeholder.
+
+**A metadata decorator to declare who's allowed.** `@Roles(...)` just stamps the allowed
+roles onto the route with `SetMetadata`; the guard reads them back:
+
+```ts
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+```
+
+**A param decorator to hand the user to the method.** `@AuthenticatedUser()` pulls whatever
+the guard attached to the request:
+
+```ts
+export const AuthenticatedUser = createParamDecorator(
+  (_data, ctx: ExecutionContext): AuthUser => ctx.switchToHttp().getRequest().user,
+);
+```
+
+**The guard ties it together** (`CanActivate`). Read the Bearer token (401 if missing),
+verify it with `JwtService` (401 if invalid), compare the token's role to the declared roles
+via `Reflector` (403), and inject `{ id, email, role }` onto the request:
+
+```ts
+const token = this.extractToken(request);
+if (!token) throw new UnauthorizedException(...);
+let payload;
+try { payload = await this.jwtService.verifyAsync(token); }   // secret from JwtModule
+catch { throw new UnauthorizedException('Invalid or expired token'); }
+
+const allowed = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [ctx.getHandler(), ctx.getClass()]);
+if (allowed?.length && !allowed.includes(payload.role)) throw new ForbiddenException(...);
+request.user = { id: payload.id, email: payload.email, role: payload.role };
+```
+
+**The shared secret is the whole trick.** `JwtModule` is configured (async, via
+`ConfigService`) with the *same* `JWT_SECRET` the Express backend signs with — so a token
+issued over there verifies over here. That's the entire cross-service trust relationship:
+one secret, two backends.
+
+```ts
+JwtModule.registerAsync({
+  inject: [ConfigService],
+  useFactory: (config) => ({ secret: config.get('JWT_SECRET') }),   // == coders-app-api secret
+});
+```
+
+**Wiring it to the controller** is now declarative — guard the class, restrict the role, and
+swap the header placeholder for the decorator:
+
+```ts
+@Controller('challenges')
+@UseGuards(AuthGuard)
+@Roles('Manager')
+export class ChallengesController {
+  @Get() findAll(@AuthenticatedUser() user: AuthUser) { return this.service.findAll(user.id); }
+  // ...
+}
+```
+
+> TypeScript note: with `isolatedModules` + `emitDecoratorMetadata`, a type used in a
+> decorated method signature (here `AuthUser`) must be imported with **`import type`** — Nest
+> emits the runtime metadata separately, so the value/type imports have to be split. And
+> since the guard sets `request.user`, a one-line `declare global` augments Express's
+> `Request` so that property is typed.
+
+### Trying it out (Phase 2)
+
+```bash
+# 1) Get a real Manager token from the Express backend (coders-app-api on :4000):
+#    register → click the verify link in its log → POST /api/auth/managers/login → $MGR
+# 2) Call this API with it:
+curl -s localhost:4100/challenges                                 # no token   → 401
+curl -s localhost:4100/challenges -H "Authorization: Bearer $COD" # coder token → 403
+curl -s localhost:4100/challenges -H "Authorization: Bearer $MGR" # manager     → 200, only their own
+curl -s -X POST localhost:4100/challenges -H "Authorization: Bearer $MGR" \
+  -H 'Content-Type: application/json' -d @challenge.json          # created + attributed to the token's manager
+```
+
+> Honesty note: verified with `curl` (no browser here). The token really is minted by the
+> Express app and verified by NestJS via the shared secret — proving the two backends
+> interoperate — with 401 (no/invalid token), 403 (coder), and 200 (manager, token-scoped).

@@ -3,52 +3,55 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '../auth/auth.guard';
+import { AuthenticatedUser } from '../auth/authenticated-user.decorator';
+import type { AuthUser } from '../auth/authenticated-user.decorator';
+import { Roles } from '../auth/roles.decorator';
 import { ChallengesService } from './challenges.service';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 
-// Challenge management for the acting manager. NOTE: the manager id is read from
-// an `x-manager-id` header for now — a placeholder so CRUD is testable before the
-// auth phase, which replaces it with the id extracted from the JWT via the
-// @AuthenticatedUser() decorator + AuthGuard.
+// Challenge management for the acting manager. The whole controller is guarded:
+// AuthGuard verifies the JWT and @Roles restricts it to managers; the manager's
+// id comes from the verified token via @AuthenticatedUser, and the service scopes
+// every operation to challenges that manager authored.
 @Controller('challenges')
+@UseGuards(AuthGuard)
+@Roles('Manager')
 export class ChallengesController {
   constructor(private readonly challengesService: ChallengesService) {}
 
   @Post()
-  create(
-    @Body() dto: CreateChallengeDto,
-    @Headers('x-manager-id') managerId: string,
-  ) {
-    return this.challengesService.create(dto, managerId);
+  create(@Body() dto: CreateChallengeDto, @AuthenticatedUser() user: AuthUser) {
+    return this.challengesService.create(dto, user.id);
   }
 
   @Get()
-  findAll(@Headers('x-manager-id') managerId: string) {
-    return this.challengesService.findAll(managerId);
+  findAll(@AuthenticatedUser() user: AuthUser) {
+    return this.challengesService.findAll(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Headers('x-manager-id') managerId: string) {
-    return this.challengesService.findOne(id, managerId);
+  findOne(@Param('id') id: string, @AuthenticatedUser() user: AuthUser) {
+    return this.challengesService.findOne(id, user.id);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() dto: UpdateChallengeDto,
-    @Headers('x-manager-id') managerId: string,
+    @AuthenticatedUser() user: AuthUser,
   ) {
-    return this.challengesService.update(id, dto, managerId);
+    return this.challengesService.update(id, dto, user.id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Headers('x-manager-id') managerId: string) {
-    return this.challengesService.remove(id, managerId);
+  remove(@Param('id') id: string, @AuthenticatedUser() user: AuthUser) {
+    return this.challengesService.remove(id, user.id);
   }
 }
