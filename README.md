@@ -48,4 +48,6 @@ dev), login, and an `authorize(...roles)` middleware guarding endpoints. Finally
 the **Express Services** brief replaces the remaining stubbed services with real
 DB-backed logic in phases: `express-services-content` (role-aware challenge
 create/list with `solution_rate` + per-coder `status`, categories, and
-own-profile management with coder rank).
+own-profile management with coder rank) and `express-services-grading` (coder-only
+submission grading via an external code runner, with score updates and
+already-solved protection).

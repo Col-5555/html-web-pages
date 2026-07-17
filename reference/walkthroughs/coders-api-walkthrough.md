@@ -746,3 +746,82 @@ curl -s localhost:4000/api/coders/$COD_ID/profile -H "Authorization: Bearer $COD
 curl -s -X PATCH localhost:4000/api/coders/$COD_ID/profile -H "Authorization: Bearer $COD" \
   -H 'Content-Type: application/json' -d '{"about":"loves recursion"}'   # → description updated
 ```
+
+### Phase 2 — Grading (external code runner)
+
+Grading is the one feature that reaches **outside** our system. We don't execute
+untrusted code ourselves; we hand it to a hosted **code runner** that runs it against
+the challenge's tests and reports back. Our job is to format the request, interpret the
+result, persist a submission, and update the coder's score.
+
+**Guard, then guard again.** The route is Coders-only (`authorize("Coder")`), and the
+service refuses to re-grade a challenge the coder has already passed:
+
+```js
+const alreadySolved = await Submission.findOne({ coder: coderId, challenge: challenge_id, passed: true });
+if (alreadySolved) throw httpError(409, "You have already solved this challenge");
+```
+
+**Shaping the runner payload.** The runner wants each test tagged with an `_id` so it can
+echo results back per test. Our embedded tests are stored with `{ _id: false }`, so we
+use the **array index** as that id, and rename our fields to the runner's:
+
+```js
+const toRunnerTests = (tests) => tests.map((t, i) => ({
+  _id: String(i),
+  inputs: t.inputs.map((input) => ({ value: input.value })),
+  output: t.expected_output,
+}));
+
+const report = await runCode({ lang, code, func_name: challenge.code.function_name, tests: toRunnerTests(challenge.tests) });
+```
+
+`runCode` (`src/utils/codeRunner.js`) is a small `fetch` wrapper around
+`POST https://runlang-v1.onrender.com/run` (URL/timeout configurable via
+`CODE_RUNNER_URL` / `CODE_RUNNER_TIMEOUT_MS`). Because the runner is on a free tier and
+can **cold-start** (the first call took ~30s in testing), the timeout is generous, and
+network / non-2xx / timeout failures surface as a `502`/`504` — "runner unavailable"
+rather than a generic 500.
+
+**Scoring.** The runner replies in one of three shapes, all `HTTP 200`:
+
+| Outcome | Body |
+| --- | --- |
+| all tests pass | `{ status: "passed", test_results: [...] }` |
+| a test fails | `{ status: "failed", test_results: [...] }` |
+| code won't run | `{ status: "failed", message: "Could not run tests due to errors in the code" }` |
+
+So `passed = report.status === "passed"`. On a pass the score is the sum over all tests
+of `weight × 100`; anything else scores 0. We persist the submission either way, and a
+pass increments the coder's cumulative leaderboard score:
+
+```js
+const passed = report.status === "passed";
+const score = passed ? challenge.tests.reduce((s, t) => s + t.weight * 100, 0) : 0;
+await Submission.create({ coder: coderId, challenge: challenge_id, code, language: lang, passed, score });
+if (passed) await Coder.findByIdAndUpdate(coderId, { $inc: { score } });
+```
+
+#### Trying it out (Phase 2)
+
+```bash
+# $COD is a coder's bearer token; $SUM_ID a challenge whose function is add(a,b) with
+# two 0.5-weight tests. (A manager token → 403; no token → 401; bad id → 404.)
+
+# Wrong answer → failed, score 0, coder score unchanged:
+curl -s -X POST localhost:4000/api/submissions -H "Authorization: Bearer $COD" \
+  -H 'Content-Type: application/json' \
+  -d '{"lang":"js","code":"function add(a,b){return a*b}","challenge_id":"'$SUM_ID'"}'
+
+# Correct answer → passed, score 100, coder score += 100:
+curl -s -X POST localhost:4000/api/submissions -H "Authorization: Bearer $COD" \
+  -H 'Content-Type: application/json' \
+  -d '{"lang":"js","code":"function add(a,b){return a+b}","challenge_id":"'$SUM_ID'"}'
+
+# Resubmit the same solved challenge → 409 "already solved".
+```
+
+> Honesty note: there's no browser here, and grading depends on a live third-party
+> service, so this was verified with `curl` against the real runner (pass / fail /
+> syntax-error, plus the 409/403/401/404 paths). If the runner is cold or down, the
+> endpoint returns 502/504 by design rather than hanging.
