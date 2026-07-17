@@ -52,6 +52,7 @@ src/
   app.js              express app: json parser, /api routes, 404 + error handler
   config/env.js       envLoader — picks .env.<APP_ENV> at startup (imported first)
   config/db.js        Mongoose connection (connectDB)
+  graphql/            GraphQL schema (SDL) + resolvers over the service layer
   models/             Mongoose models — User (Coder/Manager discriminators),
                         Challenge (embeds code + tests), Submission
   seed/               idempotent dummy-data seeding on startup
@@ -90,6 +91,27 @@ grading (Phase 2), and leaderboard + statistics (Phase 3):
 | GET | `/api/stats/trending-categories` | — |
 | GET | `/api/stats/heatmap` | `?start_date`, `?end_date` (optional ISO dates) |
 
+## GraphQL
+
+Alongside REST, the API exposes a **GraphQL** read layer at **`/graphql`** (built
+with `graphql` + `express-graphql`) that mirrors the challenge-reading endpoints,
+so a client fetches exactly the fields it needs. Open **GraphiQL** in a browser at
+[http://localhost:4000/graphql](http://localhost:4000/graphql).
+
+Queries (all authenticated — send `Authorization: Bearer <token>`, or pass the
+optional `token` argument when testing in GraphiQL):
+
+| Query | REST equivalent | Returns |
+| --- | --- | --- |
+| `categories` | `GET /api/categories` | `[String!]!` |
+| `challenges(category)` | `GET /api/challenges?category` | challenges with `solution_rate` + coder `status` |
+| `challenge(id)` | `GET /api/challenges/:id` | one challenge (full workspace payload) |
+
+Resolvers reuse the existing service layer (`src/services/challenge.service.js`),
+so GraphQL and REST share the same role-aware logic. Schema + resolvers live in
+`src/graphql/`. Test values (`Mixed`) are JSON-stringified into `String` fields.
+See the walkthrough for details.
+
 ## Testing
 
 API tests use **Jest** + **Supertest** and run against the isolated **test**
@@ -116,6 +138,8 @@ Seeded data is removed and the Mongoose connection closed after the run
 ## Walkthroughs
 
 Teaching walkthroughs live in [`reference/walkthroughs/`](../reference/walkthroughs/):
-the API build ([`coders-api-walkthrough.md`](../reference/walkthroughs/coders-api-walkthrough.md))
-and the environment system + tests
-([`unit-testing-walkthrough.md`](../reference/walkthroughs/unit-testing-walkthrough.md)).
+the API build ([`coders-api-walkthrough.md`](../reference/walkthroughs/coders-api-walkthrough.md)),
+the environment system + tests
+([`unit-testing-walkthrough.md`](../reference/walkthroughs/unit-testing-walkthrough.md)),
+and the GraphQL layer
+([`graphql-walkthrough.md`](../reference/walkthroughs/graphql-walkthrough.md)).
