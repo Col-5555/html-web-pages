@@ -6,7 +6,7 @@ bootcamp, as a small monorepo:
 | App | Folder | Stack | What it is |
 | --- | --- | --- | --- |
 | **Coders** | [`coders-app/`](./coders-app) | Vite + React + Redux + Tailwind | The coder-facing platform: auth, challenges, workspace, leaderboard, profile. |
-| **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui + json-server | The admin dashboard for creating, editing, and deleting challenges. |
+| **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui | The admin dashboard for creating, editing, and deleting challenges. Integrated with the real backends — auth via the Express API, challenges via the NestJS API (json-server retired). |
 | **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi + Mongoose/MongoDB | The backend REST API (route/controller/service architecture). Fully DB-backed: Mongoose models + Atlas persistence, real auth (bcrypt, JWT, email verification, `authorize(...roles)` guard), role-aware content management, submission grading via an external code runner, and leaderboard/statistics via aggregation pipelines. |
 | **Managers API** | [`managers-app-api/`](./managers-app-api) | NestJS + Mongoose/MongoDB | The managers' backend (NestJS, TypeScript) for challenge CRUD. Separate service from the Coders API but shares the same Atlas database and JWT secret; guarded so only authenticated managers can manage their own challenges. |
 
@@ -17,10 +17,9 @@ want and run its scripts there.
 # Coders app (Vite dev server)
 cd coders-app && npm install && npm run dev
 
-# Managers app (Next.js on :8457 + json-server on :3457)
-cd managers-app && npm install
-npm run db      # terminal 1 — json-server mock API
-npm run dev     # terminal 2 — Next.js dev server
+# Managers app (Next.js on :8457) — needs the Express API (:4000) for auth and the
+# NestJS API (:4100) for challenges running (see below); json-server is retired.
+cd managers-app && npm install && npm run dev
 
 # Coders API (Express on :4000)
 cd coders-app-api && npm install && npm run dev
@@ -59,4 +58,7 @@ top-k, solved-challenge/trending-category/heatmap analytics via MongoDB
 aggregation pipelines). A second backend then begins: `managers-nest-crud` starts
 the NestJS `managers-app-api` (challenge CRUD over the shared database), and
 `managers-nest-auth` guards it — a `@Roles`/`AuthGuard`/`@AuthenticatedUser` stack
-that verifies the manager's Express-issued JWT with the shared secret.
+that verifies the manager's Express-issued JWT with the shared secret. Finally,
+`managers-integration-auth` connects the Next.js `managers-app` to those real
+backends: signup/signin route handlers (Axios → Express) with the token stored in
+Redux + a cookie, replacing the mock auth.

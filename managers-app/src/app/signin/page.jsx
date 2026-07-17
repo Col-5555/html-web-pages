@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch } from "react-redux";
+import { toast } from "sonner";
 import AuthShell from "@/components/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +13,10 @@ import { login } from "@/redux/authSlice";
 import { signIn } from "@/lib/api/auth";
 import { signinSchema } from "@/schemas/authSchemas";
 
-// Managers sign-in page. Validated with react-hook-form + zod (email valid,
-// password >= 6). On success, records the manager in Redux and goes to the
-// dashboard.
+// Managers sign-in page. Validated with react-hook-form + zod. On success it
+// stores the manager + JWT in Redux (the route handler also set the cookie) and
+// goes to the dashboard; backend errors (bad credentials, unverified email) are
+// surfaced as a toast.
 export default function SignInPage() {
   const {
     register,
@@ -25,9 +27,13 @@ export default function SignInPage() {
   const router = useRouter();
 
   const onSubmit = async (data) => {
-    const user = await signIn(data);
-    dispatch(login(user));
-    router.push("/");
+    try {
+      const { token, user } = await signIn(data);
+      dispatch(login({ user, token }));
+      router.push("/");
+    } catch (err) {
+      toast.error(err.message || "Sign in failed");
+    }
   };
 
   return (

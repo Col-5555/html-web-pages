@@ -1,24 +1,29 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 
-// Client-side auth guard. Wraps authenticated pages and redirects to /signin
-// when the manager isn't signed in. Because auth lives in client Redux (no
-// cookie/session), this guard runs on the client; the wrapped Server Component
-// content is passed through as `children`.
+// Client-side auth guard. Auth lives in client Redux, rehydrated from the token
+// cookie in providers. The decision is deferred until after mount so the server
+// and the first client render agree (both render nothing) — avoiding a hydration
+// mismatch — after which unauthenticated managers are redirected to /signin.
 export default function AuthGuard({ children }) {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isAuthenticated) {
       router.replace("/signin");
     }
-  }, [isAuthenticated, router]);
+  }, [mounted, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (!mounted || !isAuthenticated) {
     return null;
   }
 

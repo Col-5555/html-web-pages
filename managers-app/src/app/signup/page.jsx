@@ -4,30 +4,33 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useDispatch } from "react-redux";
+import { toast } from "sonner";
 import AuthShell from "@/components/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { login } from "@/redux/authSlice";
 import { signUp } from "@/lib/api/auth";
 import { signupSchema } from "@/schemas/authSchemas";
 
-// Managers sign-up page. Validated with react-hook-form + zod (names >= 2, valid
-// email, password >= 6). On success, records the manager in Redux and goes to
-// the dashboard.
+// Managers sign-up page. Validated with react-hook-form + zod. On success the
+// manager is registered (unverified) and sent to sign-in — the Express backend
+// emails a verification link that must be clicked before the first login.
+// Backend errors (e.g. duplicate email) are surfaced as a toast.
 export default function SignUpPage() {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(signupSchema) });
-  const dispatch = useDispatch();
   const router = useRouter();
 
   const onSubmit = async (data) => {
-    const user = await signUp(data);
-    dispatch(login(user));
-    router.push("/");
+    try {
+      await signUp(data);
+      toast.success("Account created — check your email to verify, then sign in.");
+      router.push("/signin");
+    } catch (err) {
+      toast.error(err.message || "Sign up failed");
+    }
   };
 
   const fieldError = (name) =>
@@ -60,7 +63,7 @@ export default function SignUpPage() {
           {fieldError("password")}
         </div>
         <Button type="submit" disabled={isSubmitting}>
-          Login
+          Sign up
         </Button>
       </form>
       <p className="mt-4 text-sm text-muted-foreground">

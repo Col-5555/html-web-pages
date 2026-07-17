@@ -430,3 +430,78 @@ With both servers running (`npm run db` + `npm run dev`) and signed in:
 > verified by `npm run build` / `npm run lint`, the routes serving 200, and the
 > json-server POST/PUT contract — not by clicking. Give it a click-through
 > yourself to confirm the UI.
+
+---
+
+## Phase 4: Real-backend integration
+
+The dashboard was built against **json-server** with mock auth. This phase swaps both
+for the real services: **auth** goes to the Express `coders-app-api` (:4000), and
+**challenges** to the NestJS `managers-app-api` (:4100). The pages and components barely
+change — the work is in the data layer and a pair of Next.js route handlers.
+
+### Auth through a Backend-for-Frontend
+
+Rather than call Express from the browser, the forms post to this app's own **route
+handlers** (`src/app/api/auth/{signup,signin}/route.js`), which use **Axios** to talk to
+Express server-side. That keeps the backend URL and the token off the client, and gives a
+clean seam for setting cookies.
+
+```js
+// src/app/api/auth/signin/route.js
+export async function POST(request) {
+  const { email, password } = await request.json();
+  try {
+    const { data } = await axios.post(`${EXPRESS_API_URL}/api/auth/managers/login`, { email, password });
+    (await cookies()).set("token", data.token, { path: "/", sameSite: "lax", maxAge: 7 * 24 * 3600 });
+    return Response.json({ token: data.token, user: data.user });
+  } catch (error) {
+    // relay Express's status + message: 401 bad creds, 403 unverified, …
+    return Response.json({ message: error.response?.data?.message ?? "…" }, { status: error.response?.status ?? 502 });
+  }
+}
+```
+
+Two Next-16 details matter here: route handlers are `export async function POST(request)`
+in an `app/api/**/route.js` file, and **`cookies()` is async** — `await cookies()` before
+`.set`/`.get`. (Setting a cookie is only allowed in a route handler or server action, not
+during a Server Component render.)
+
+### Token in two places, on purpose
+
+The token is stored **both** in Redux (for the client) and in a **cookie** (for the
+server): the cookie is set by the signin route handler and is *readable* (no `httpOnly`)
+so `providers.jsx` can rehydrate Redux from it on a hard refresh, while the challenge data
+layer / server actions read the same cookie via `cookies()` to authorize their API calls.
+
+```js
+// providers.jsx — rehydrate once on the client, before render
+if (typeof window !== "undefined" && !store.getState().auth.isAuthenticated) {
+  const token = readCookie("token");
+  const payload = token && decodeJwt(token);         // {id, email, role}
+  if (payload) store.dispatch(login({ token, user: { ...payload } }));
+}
+```
+
+`AuthGuard` gained a `mounted` gate so the server render and the first client render agree
+(both render nothing) — avoiding a hydration mismatch — before it redirects an
+unauthenticated manager to `/signin`.
+
+### The verification reality
+
+Express registers managers as **unverified** and refuses login until the emailed link is
+clicked. So the flow is honest about it: **signup → redirect to `/signin`** with a "check
+your email to verify" toast; a premature login shows Express's `403 Please verify your
+email…`. In dev the link is an Ethereal preview printed to the Express log.
+
+### Trying it out (Phase 4 — auth)
+
+```bash
+# Express on :4000, managers-app on :8457.
+curl -s -X POST localhost:8457/api/auth/signup -H 'Content-Type: application/json' \
+  -d '{"firstName":"A","lastName":"B","email":"m@example.com","password":"secret123"}'   # 201
+# → click the verify link from the Express log, then:
+curl -si -X POST localhost:8457/api/auth/signin -H 'Content-Type: application/json' \
+  -d '{"email":"m@example.com","password":"secret123"}'   # 200 { token, user } + Set-Cookie: token=…
+# Before verifying → 403; wrong password → 401; duplicate signup → 409 — all relayed from Express.
+```
