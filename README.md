@@ -8,6 +8,7 @@ bootcamp, as a small monorepo:
 | **Coders** | [`coders-app/`](./coders-app) | Vite + React + Redux + Tailwind | The coder-facing platform: auth, challenges, workspace, leaderboard, profile. |
 | **Managers** | [`managers-app/`](./managers-app) | Next.js + Redux + shadcn/ui + json-server | The admin dashboard for creating, editing, and deleting challenges. |
 | **Coders API** | [`coders-app-api/`](./coders-app-api) | Express 5 + Joi + Mongoose/MongoDB | The backend REST API (route/controller/service architecture). Fully DB-backed: Mongoose models + Atlas persistence, real auth (bcrypt, JWT, email verification, `authorize(...roles)` guard), role-aware content management, submission grading via an external code runner, and leaderboard/statistics via aggregation pipelines. |
+| **Managers API** | [`managers-app-api/`](./managers-app-api) | NestJS + Mongoose/MongoDB | The managers' backend (NestJS, TypeScript) for challenge CRUD. Separate service from the Coders API but shares the same Atlas database and JWT secret; guarded so only authenticated managers can manage their own challenges. |
 
 Each app has its own `package.json` and dependencies — `cd` into the folder you
 want and run its scripts there.
@@ -23,6 +24,9 @@ npm run dev     # terminal 2 — Next.js dev server
 
 # Coders API (Express on :4000)
 cd coders-app-api && npm install && npm run dev
+
+# Managers API (NestJS on :4100)
+cd managers-app-api && npm install && npm run start:dev
 ```
 
 ## Documentation
@@ -52,4 +56,5 @@ own-profile management with coder rank), `express-services-grading` (coder-only
 submission grading via an external code runner, with score updates and
 already-solved protection), and `express-services-stats` (coders-only leaderboard,
 top-k, solved-challenge/trending-category/heatmap analytics via MongoDB
-aggregation pipelines).
+aggregation pipelines). A second backend then begins: `managers-nest-crud` starts
+the NestJS `managers-app-api` (challenge CRUD over the shared database).
