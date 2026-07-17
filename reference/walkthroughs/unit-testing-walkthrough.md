@@ -151,4 +151,141 @@ without touching a line of application code.
 
 ## Part 2 — API tests
 
-_(Added in Phase 2 — `unit-testing-api`.)_
+### The idea
+
+Now that a **test environment** exists (its own database, wiped freely), we can
+write automated tests that exercise the real HTTP endpoints.
+[**Supertest**](https://www.npmjs.com/package/supertest) fires requests at the
+Express app in-process (no need to bind a port), and [**Jest**](https://jestjs.io/)
+runs the suite and makes the assertions.
+
+### Setup
+
+`jest` and `supertest` are dev dependencies. Because the project is an ES-module
+project, Jest runs in native-ESM mode via a Node flag, and a `test` script wires
+the whole thing together with the test environment:
+
+```jsonc
+// package.json
+"scripts": {
+  "test": "cross-env APP_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
+},
+"jest": {
+  "testEnvironment": "node",
+  "testMatch": ["**/test/**/*.test.js"]
+}
+```
+
+- `APP_ENV=test` → `envLoader` loads `.env.test` → the isolated `_test` database.
+- `--experimental-vm-modules` lets Jest load ES modules natively (no Babel).
+- `--runInBand` runs tests serially — they share one database, so we don't want
+  parallel workers stepping on each other.
+
+### The app is testable by design
+
+`src/app.js` exports `createApp()` which builds the Express app **without** calling
+`listen()` — the port binding lives in `src/index.js`. That separation is what lets
+Supertest drive the app directly:
+
+```js
+import { createApp } from "../src/app.js";
+const app = createApp();
+
+const res = await request(app).get("/api/challenges");
+```
+
+And, exactly like `index.js`, the test file imports the env loader **first** so the
+config is populated before anything reads it:
+
+```js
+import "../src/config/env.js";   // ← first line of the test file
+```
+
+### Seeding: `beforeAll`
+
+Before the tests run, we insert dummy data **through the Mongoose models** (not raw
+inserts) so the model hooks run — importantly, the `User` pre-save hook hashes the
+password, so login works:
+
+- one **manager** and one **coder** (both `is_verified: true`, so login isn't
+  blocked with a 403);
+- two **challenges** authored by that manager;
+- two **submissions** by the coder — one **passing** (→ challenge status
+  `Completed`) and one **failing** (→ status `Attempted`).
+
+We also log the coder in once here and stash the token, so the "challenges after
+login" test can reuse it.
+
+```js
+coder = await Coder.create({
+  first_name: "Test", last_name: "Coder",
+  email: CODER_EMAIL, password: CODER_PASSWORD, is_verified: true,
+});
+// …challenges, then submissions:
+{ coder: coder._id, challenge: challengeCompleted._id, passed: true,  … } // Completed
+{ coder: coder._id, challenge: challengeAttempted._id, passed: false, … } // Attempted
+```
+
+> **Gotcha — the email TLD.** The login/register Joi schemas use
+> `Joi.string().email()`, which validates the domain against the real IANA TLD
+> list. A `@…​.test` address is *rejected* (`.test` is a reserved, non-routable
+> TLD), so the fixtures use `@…​.dev` — a real TLD — just like the app's own seed
+> data. A separate database keeps them from colliding.
+
+### The four test cases (names taken verbatim from the brief)
+
+```js
+it("should return an unauthorized error when the user is not logged in", …)
+// GET /api/challenges with no header → 401
+
+it("should return an unauthorized error when the user passes an invalid token", …)
+// GET /api/challenges, Authorization: Bearer not-a-real-token → 401
+
+it("should return a valid token when the correct credentials are passed to the login endpoint", …)
+// POST /api/auth/coders/login → 200, body.token is a non-empty string
+
+it("should return all the challenges for the coder after login", …)
+// GET /api/challenges with the coder's Bearer token → 200; assert exactly one
+// "Completed" and one "Attempted" status among the returned challenges
+```
+
+The first two prove the `authorize()` middleware guards the route; the third proves
+login issues a signed token; the fourth proves both the auth flow **and** the
+per-coder status logic (`Waiting`/`Attempted`/`Completed`) from the challenges
+service.
+
+### Cleanup: `afterAll`
+
+The suite removes exactly the documents it inserted and closes the Mongoose
+connection, so the test database is left empty and Jest exits cleanly (no
+open-handle warning):
+
+```js
+afterAll(async () => {
+  await Submission.deleteMany({ coder: coder?._id });
+  await Challenge.deleteMany({ _id: { $in: [ … ] } });
+  await Coder.deleteMany({ _id: coder?._id });
+  await Manager.deleteMany({ _id: manager?._id });
+  await mongoose.connection.close();
+});
+```
+
+### Trying it out
+
+```bash
+cd coders-app-api
+cp .env.test.example .env.test   # point MONGODB_DB at a dedicated test database
+npm test
+```
+
+```
+MongoDB connected → db "ImpDatabaseDesign_test"
+
+ PASS  test/challenges.test.js
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+```
+
+The suite seeds `ImpDatabaseDesign_test`, runs the four cases, then wipes the data
+— the dev and prod databases are never touched.
+

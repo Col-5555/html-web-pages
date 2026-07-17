@@ -90,5 +90,32 @@ grading (Phase 2), and leaderboard + statistics (Phase 3):
 | GET | `/api/stats/trending-categories` | — |
 | GET | `/api/stats/heatmap` | `?start_date`, `?end_date` (optional ISO dates) |
 
-A teaching walkthrough lives at
-[`reference/walkthroughs/coders-api-walkthrough.md`](../reference/walkthroughs/coders-api-walkthrough.md).
+## Testing
+
+API tests use **Jest** + **Supertest** and run against the isolated **test**
+database (`.env.test`, `MONGODB_DB=ImpDatabaseDesign_test`):
+
+```bash
+cp .env.test.example .env.test   # point at a dedicated test database
+npm test
+```
+
+The suite (`test/challenges.test.js`) seeds a coder, a manager, two challenges and
+two submissions (one passing, one failing), then covers the auth + challenges
+endpoints:
+
+- unauthorized without a token / with an invalid token → `401`
+- login with correct credentials → `200` + a token
+- listing challenges after login → the coder's per-challenge status
+  (one `Completed`, one `Attempted`)
+
+Seeded data is removed and the Mongoose connection closed after the run
+(`afterAll`), so the test database is left clean. Jest runs in native-ESM mode
+(`NODE_OPTIONS=--experimental-vm-modules`, wired into the `test` script).
+
+## Walkthroughs
+
+Teaching walkthroughs live in [`reference/walkthroughs/`](../reference/walkthroughs/):
+the API build ([`coders-api-walkthrough.md`](../reference/walkthroughs/coders-api-walkthrough.md))
+and the environment system + tests
+([`unit-testing-walkthrough.md`](../reference/walkthroughs/unit-testing-walkthrough.md)).
