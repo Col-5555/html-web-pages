@@ -3,6 +3,7 @@ import { graphqlHTTP } from "express-graphql";
 import apiRoutes from "./routes/index.js";
 import { schema } from "./graphql/schema.js";
 import { rootValue } from "./graphql/resolvers.js";
+import avatarTestRoutes from "./devtools/avatarTest.js";
 import { notFound, errorHandler } from "./middlewares/errorHandler.js";
 
 // Builds and configures the Express application (kept separate from server
@@ -32,6 +33,12 @@ export const createApp = () => {
       context: { req },
     }))
   );
+
+  // Dev-only browser page for manually testing the avatar upload endpoint.
+  // Never mounted in production.
+  if (process.env.APP_ENV !== "prod") {
+    app.use(avatarTestRoutes);
+  }
 
   // Unmatched routes → 404, then the central error handler.
   app.use(notFound);
