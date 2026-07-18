@@ -1,5 +1,6 @@
 import { User, Coder, Manager } from "../models/index.js";
 import { httpError } from "../utils/httpError.js";
+import { uploadAvatar } from "../utils/avatarUpload.js";
 
 // Update/read through the matching discriminator model so subtype-only paths
 // (e.g. a Coder's `description`) are recognised — the base User schema doesn't
@@ -23,14 +24,23 @@ export const getProfile = async (role, id) => {
   return user.toJSON();
 };
 
-// Apply general-info updates and return the merged record. The update validator
-// uses `about`; for coders that maps onto the model's `description` (bio) field.
-// Managers have no bio, so `about` is ignored for them. Avatar is a later brief.
-export const updateProfile = async (role, id, updates) => {
+// Apply profile updates and return the merged record. The update validator uses
+// `about`; for coders that maps onto the model's `description` (bio) field.
+// Managers have no bio, so `about` is ignored for them.
+//
+// For coders an optional `file` (a Multer in-memory file, req.file) is uploaded
+// to Supabase Storage; when the upload yields a public URL it becomes the new
+// `avatar`. No file → avatar left unchanged.
+export const updateProfile = async (role, id, updates, file) => {
   const mapped = {};
   if (updates.first_name !== undefined) mapped.first_name = updates.first_name;
   if (updates.last_name !== undefined) mapped.last_name = updates.last_name;
   if (role === "coder" && updates.about !== undefined) mapped.description = updates.about;
+
+  if (role === "coder") {
+    const avatarUrl = await uploadAvatar(file);
+    if (avatarUrl) mapped.avatar = avatarUrl;
+  }
 
   const user = await modelFor(role).findByIdAndUpdate(id, mapped, {
     new: true,

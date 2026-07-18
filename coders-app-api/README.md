@@ -41,6 +41,9 @@ Each `.env.<env>` supplies:
 | `MONGODB_DB` | database name for this environment |
 | `JWT_SECRET` | secret used to sign/verify auth tokens |
 | `APP_URL` | public base URL the email-verification link is built from |
+| `SUPABASE_URL` | Supabase project URL (avatar storage) |
+| `SUPABASE_KEY` | Supabase **server-side** key (service_role / secret) — never expose to the frontend |
+| `SUPABASE_BUCKET` | public Storage bucket for avatars (`avatars`) |
 
 The Atlas cluster's **Network Access** allowlist must include your IP.
 
@@ -52,6 +55,7 @@ src/
   app.js              express app: json parser, /api routes, 404 + error handler
   config/env.js       envLoader — picks .env.<APP_ENV> at startup (imported first)
   config/db.js        Mongoose connection (connectDB)
+  config/supabase.js  Supabase client (avatar storage; ws WebSocket polyfill)
   graphql/            GraphQL schema (SDL) + resolvers over the service layer
   models/             Mongoose models — User (Coder/Manager discriminators),
                         Challenge (embeds code + tests), Submission
@@ -60,9 +64,9 @@ src/
   controllers/        read request → call service → shape response
   services/           business logic + Mongoose persistence
   validators/         Joi schemas
-  middlewares/        validate factory + central error handler
+  middlewares/        validate + authorize + central error handler + multer upload
   data/               mock data (also the seed source)
-  utils/              asyncHandler, httpError
+  utils/              asyncHandler, httpError, avatarUpload (Supabase)
 ```
 
 ## Endpoints
@@ -78,7 +82,7 @@ grading (Phase 2), and leaderboard + statistics (Phase 3):
 | POST | `/api/auth/managers/login` | same |
 | GET | `/api/coders/:id/profile` | — |
 | GET | `/api/managers/:id/profile` | — |
-| PATCH | `/api/coders/:id/profile` | `first_name?, last_name?, about?` |
+| PATCH | `/api/coders/:id/profile` | `first_name?, last_name?, about?`, `avatar?` file (**multipart/form-data**; avatar → Supabase) |
 | PATCH | `/api/managers/:id/profile` | same |
 | POST | `/api/challenges` | `title, category, description, level, code, tests` |
 | GET | `/api/challenges` | `?category` (optional filter) |
@@ -141,5 +145,7 @@ Teaching walkthroughs live in [`reference/walkthroughs/`](../reference/walkthrou
 the API build ([`coders-api-walkthrough.md`](../reference/walkthroughs/coders-api-walkthrough.md)),
 the environment system + tests
 ([`unit-testing-walkthrough.md`](../reference/walkthroughs/unit-testing-walkthrough.md)),
-and the GraphQL layer
-([`graphql-walkthrough.md`](../reference/walkthroughs/graphql-walkthrough.md)).
+the GraphQL layer
+([`graphql-walkthrough.md`](../reference/walkthroughs/graphql-walkthrough.md)),
+and avatar file upload
+([`file-upload-walkthrough.md`](../reference/walkthroughs/file-upload-walkthrough.md)).

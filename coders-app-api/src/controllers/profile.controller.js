@@ -17,14 +17,17 @@ export const getProfile = (role) => async (req, res) => {
   res.status(200).json(profile);
 };
 
-// PATCH general profile info (first_name, last_name, about). The update
-// validator middleware has already sanitised the body onto req.validated.body.
+// PATCH profile info (first_name, last_name, about). The validator middleware has
+// already sanitised the text fields onto req.validated.body. For coders the
+// request may be multipart/form-data carrying an `avatar` image, which Multer
+// exposes on req.file — passed through to the service to upload to Supabase.
 export const updateProfile = (role) => async (req, res) => {
   assertOwnership(req);
   const profile = await profileService.updateProfile(
     role,
     req.params.id,
-    req.validated.body
+    req.validated.body,
+    req.file
   );
   res.status(200).json({ message: "Profile updated", profile });
 };
