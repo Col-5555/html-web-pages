@@ -15,7 +15,9 @@ checkpoint between. This document grows with each phase.
 - **Phase 2 — Challenges list**: the Home table + category filter now read live
   data via RTK Query, with the backend↔UI field mapping done in
   `transformResponse`.
-- **Phase 3 — Workspace / submissions** (planned).
+- **Phase 3 — Workspace / submissions**: the coding lab loads a real challenge,
+  the editor code lives in Redux, and Submit posts to the grader (external code
+  runner) and shows the per-test result.
 - **Phase 4 — Profile + avatar upload + stats** (planned).
 - **Phase 5 — Leaderboard + Home sidebar** (planned).
 
@@ -172,3 +174,64 @@ categories as a prop instead of importing the mock file (which is deleted).
 returns the four seeded challenges (`solution_rate` ints + `Waiting`/`Completed`
 statuses, mapped to `"NN%"` + `Pending`/`Completed`); `?category=Graphs` filters
 to one; a request with no token → `401`. `npm run build` + `lint` clean.
+
+---
+
+## Phase 3: Workspace — challenge detail + code submission
+
+The coding lab (`/workspace/:challengeId`) was reading the mock
+`src/data/challenges.js` and its Submit button was a no-op. It now loads the real
+challenge and grades real submissions.
+
+### One endpoint for the detail, one for grading
+
+```js
+getChallenge: builder.query({
+  query: (id) => `/challenges/${id}`,
+  transformResponse: mapChallengeDetail,
+  providesTags: (r, e, id) => [{ type: "Challenge", id }],
+}),
+submit: builder.mutation({
+  query: (body) => ({ url: "/submissions", method: "POST", body }),
+  invalidatesTags: ["Challenge"],   // a pass changes status -> refresh list + detail
+}),
+```
+
+`mapChallengeDetail` adds the workspace-only shaping on top of the summary
+mapping:
+
+| Backend | UI |
+| --- | --- |
+| `code.code_text` `[{ language:"js"\|"py", content }]` | `starterCode` `{ js, py }` |
+| `tests` `[{ inputs:[{name,value}], expected_output }]` | `[{ id, inputText, outputText }]` (`inputText` = the values joined, `outputText` = the expected output as JSON) |
+| `code.function_name` | `functionName` |
+
+### Editor code lifted into Redux
+
+Previously the CodeMirror value was `CodeEditor`'s local `useState`, invisible to
+the Submit button. The `workspace` slice now owns `code` (and `result`), with
+`setCode` / `setResult`. `CodeEditor` reads/writes `state.workspace.code`, and a
+small effect **seeds it from the challenge's starter code for the current
+language** (re-seeding when the challenge or language changes — the editor's
+`"javascript"`/`"python"` map to the backend's `"js"`/`"py"`).
+
+### Submit → grade
+
+`TestCases` reads the lifted `code` + `language` from Redux and posts
+`{ lang, code, challenge_id }` via `useSubmitMutation`. Because the grader calls
+an **external code runner on a free tier that can cold-start**, it shows a
+"can take up to a minute" loading note, then renders the result: a Passed/Failed
+banner with the score, and a per-test list. Error responses are surfaced too
+(e.g. `409` "already solved", `502/504` runner unavailable/timeout). The panel
+resets when navigating to a different challenge.
+
+### Verified against the live backend (real grader)
+
+`GET /api/challenges/:id` returns the mapped detail; a correct `fib` submission →
+`{ passed:true, score:100, status:"passed", test_results:[{status:"passed",
+test_id,…}] }`; a wrong answer → `{ passed:false, score:0, status:"failed" }`;
+re-submitting a solved challenge → `409`. (The test submissions were removed
+afterward to leave the demo data untouched.) `npm run build` + `lint` clean.
+
+With this phase the app no longer imports any `src/data/*.js` challenge mock —
+`challenges.js` is deleted.

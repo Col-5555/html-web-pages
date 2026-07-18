@@ -23,6 +23,35 @@ function mapChallengeSummary(c) {
   };
 }
 
+// The workspace needs the full challenge: the summary fields plus the markdown
+// description, the per-language starter code, and the test cases. The backend's
+// shapes differ from what the editor/test panel expect, so we reshape here:
+//
+// - code.code_text [{ language:"js"|"py", content }] -> starterCode { js, py }
+// - tests [{ inputs:[{name,value}], expected_output }] -> [{ id, inputText, outputText }]
+//   inputText  = the input values joined (e.g. "[2,7,11,15], 9")
+//   outputText = the expected output as JSON (e.g. "[0,1]")
+function mapChallengeDetail(c) {
+  const starterCode = (c.code?.code_text ?? []).reduce((acc, entry) => {
+    acc[entry.language] = entry.content;
+    return acc;
+  }, {});
+
+  const tests = (c.tests ?? []).map((test, index) => ({
+    id: index,
+    inputText: test.inputs.map((input) => JSON.stringify(input.value)).join(", "),
+    outputText: JSON.stringify(test.expected_output),
+  }));
+
+  return {
+    ...mapChallengeSummary(c),
+    description: c.description,
+    functionName: c.code?.function_name,
+    starterCode,
+    tests,
+  };
+}
+
 // The single RTK Query "API slice" for the whole app. Later assignments inject
 // their endpoints (challenges, workspace, profile, leaderboard) into this same
 // slice via api.injectEndpoints, so there is one cache, one middleware, and one
@@ -94,6 +123,27 @@ export const api = createApi({
       query: () => "/categories",
       providesTags: ["Challenge"],
     }),
+
+    // One challenge with everything the workspace needs (description, starter
+    // code, tests).
+    getChallenge: builder.query({
+      query: (id) => `/challenges/${id}`,
+      transformResponse: mapChallengeDetail,
+      providesTags: (result, error, id) => [{ type: "Challenge", id }],
+    }),
+
+    // Submit code for grading. Body: { lang: "js"|"py", code, challenge_id }.
+    // Returns { passed, score, status, message, test_results }. A passing
+    // submission changes the challenge's status, so invalidate the cache to
+    // refresh the list + this challenge.
+    submit: builder.mutation({
+      query: (body) => ({
+        url: "/submissions",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Challenge"],
+    }),
   }),
 });
 
@@ -102,4 +152,6 @@ export const {
   useRegisterMutation,
   useGetChallengesQuery,
   useGetCategoriesQuery,
+  useGetChallengeQuery,
+  useSubmitMutation,
 } = api;

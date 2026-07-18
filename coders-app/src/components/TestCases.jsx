@@ -1,17 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useSubmitMutation } from "../redux/api";
+import { setResult } from "../redux/workspaceSlice";
+
+// The editor language values map to the backend's language codes.
+const API_LANG = { javascript: "js", python: "py" };
 
 // The bottom half of the Playground: a tab per test case, the selected case's
-// input + expected output, and a Submit button. The grading backend comes in a
-// later assignment, so Submit just shows a mock confirmation for now.
-export default function TestCases({ tests = [] }) {
+// input + expected output, a Submit button, and — after submitting — the grader's
+// result. Submit posts the code (lifted into the workspace slice) to the backend,
+// which runs it against the challenge's tests via an external code runner.
+export default function TestCases({ tests = [], challengeId }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const { code, language, result } = useSelector((state) => state.workspace);
+  const [submit, { isLoading }] = useSubmitMutation();
 
   const activeTest = tests[activeIndex];
 
-  const handleSubmit = () => {
-    // Placeholder: later this posts the code to the grading service.
-    setSubmitted(true);
+  // Reset the panel when switching to a different challenge (the component stays
+  // mounted across /workspace/:id changes).
+  useEffect(() => {
+    setActiveIndex(0);
+    setError("");
+    dispatch(setResult(null));
+  }, [challengeId, dispatch]);
+
+  const handleSubmit = async () => {
+    setError("");
+    dispatch(setResult(null));
+    try {
+      const res = await submit({
+        lang: API_LANG[language],
+        code,
+        challenge_id: challengeId,
+      }).unwrap();
+      dispatch(setResult(res));
+    } catch (err) {
+      // e.g. 409 already solved, 502/504 runner unavailable/timeout.
+      setError(err?.data?.message ?? "Submission failed. Please try again.");
+    }
   };
 
   return (
@@ -54,19 +83,62 @@ export default function TestCases({ tests = [] }) {
         </div>
       )}
 
+      {/* Result / errors */}
+      {isLoading && (
+        <p className="mt-4 text-sm text-muted">
+          Running your code… the grader can take up to a minute on a cold start.
+        </p>
+      )}
+      {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+      {result && !isLoading && (
+        <div className="mt-4 space-y-2 text-sm">
+          <div
+            className={`rounded px-3 py-2 font-semibold ${
+              result.passed
+                ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                : "bg-red-500/15 text-red-600 dark:text-red-400"
+            }`}
+          >
+            {result.passed ? "✓ Passed" : "✗ Failed"} — score {result.score}
+          </div>
+          {result.message && (
+            <p className="text-muted">{result.message}</p>
+          )}
+          {Array.isArray(result.test_results) &&
+            result.test_results.length > 0 && (
+              <ul className="space-y-1">
+                {result.test_results.map((tr, index) => (
+                  <li
+                    key={tr.test_id ?? index}
+                    className="flex items-center justify-between rounded bg-black/5 px-3 py-2 text-xs dark:bg-white/10"
+                  >
+                    <span>Test {index + 1}</span>
+                    <span
+                      className={
+                        tr.status === "passed"
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-red-600 dark:text-red-400"
+                      }
+                    >
+                      {tr.status ?? "—"}
+                      {tr.message ? ` · ${tr.message}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+        </div>
+      )}
+
       {/* Submit */}
       <div className="mt-4 flex items-center justify-end gap-3">
-        {submitted && (
-          <span className="text-sm text-green-600 dark:text-green-400">
-            Submitted!
-          </span>
-        )}
         <button
           type="button"
           onClick={handleSubmit}
-          className="rounded bg-skyblue px-4 py-1.5 text-sm font-semibold text-white"
+          disabled={isLoading}
+          className="rounded bg-skyblue px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-70"
         >
-          Submit
+          {isLoading ? "Running…" : "Submit"}
         </button>
       </div>
     </div>

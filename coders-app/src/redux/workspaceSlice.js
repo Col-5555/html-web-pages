@@ -1,11 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// Editor configuration for the workspace (coding lab): which language the code
-// editor highlights and its font size. Kept in Redux so the config dropdowns and
-// the editor stay in sync (and so later features can read the choice too).
+// State for the workspace (coding lab): the editor config (language + font size),
+// the code being written, and the latest grading result. Code lives here (rather
+// than in CodeEditor's local state) so the Submit button in the TestCases panel
+// can read exactly what the editor shows and post it to the grader.
 const initialState = {
   language: "javascript", // "javascript" | "python"
   fontSize: 16,
+  code: "", // seeded from the challenge's starter code for the current language
+  result: null, // the grader's response: { passed, score, status, message, test_results }
 };
 
 const workspaceSlice = createSlice({
@@ -18,8 +21,15 @@ const workspaceSlice = createSlice({
     setFontSize: (state, action) => {
       state.fontSize = action.payload;
     },
+    setCode: (state, action) => {
+      state.code = action.payload;
+    },
+    setResult: (state, action) => {
+      state.result = action.payload;
+    },
   },
 });
 
-export const { setLanguage, setFontSize } = workspaceSlice.actions;
+export const { setLanguage, setFontSize, setCode, setResult } =
+  workspaceSlice.actions;
 export default workspaceSlice.reducer;

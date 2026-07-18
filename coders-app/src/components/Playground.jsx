@@ -13,8 +13,8 @@ export default function Playground({ challenge }) {
       minSize={100}
       gutterSize={8}
     >
-      <CodeEditor />
-      <TestCases tests={challenge.tests} />
+      <CodeEditor starterCode={challenge.starterCode} />
+      <TestCases tests={challenge.tests} challengeId={challenge.id} />
     </Split>
   );
 }
