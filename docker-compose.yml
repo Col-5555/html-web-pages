@@ -1,0 +1,51 @@
+# Orchestrates the full backend stack for the Backend Deployment assignment:
+# a MongoDB server plus both APIs, on one network so the apps reach Mongo by name.
+#
+#   docker compose up --build      # build images + start everything
+#   docker compose down -v         # stop + remove containers and the db volume
+#
+# The two APIs share one Mongo database (`codecla`) and the SAME JWT_SECRET, so a
+# token minted by the Express auth endpoints is accepted by the NestJS service.
+# The Express app seeds the database on first boot (src/seed/), so there's data to
+# query straight away. These credentials are throwaway demo values — fine for local
+# Docker, not for production.
+
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  # Express backend — single-stage image (coders-app-api/Dockerfile).
+  coders-api:
+    build: ./coders-app-api
+    image: codecla-express:v1
+    ports:
+      - "4000:4000"
+    environment:
+      PORT: 4000
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: codecla
+      JWT_SECRET: docker-demo-shared-secret-change-me
+      APP_URL: http://localhost:4000
+    depends_on:
+      - mongo
+
+  # NestJS backend — multi-stage image (managers-app-api/Dockerfile).
+  managers-api:
+    build: ./managers-app-api
+    image: codecla-nestjs:v1
+    ports:
+      - "4100:4100"
+    environment:
+      PORT: 4100
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: codecla
+      JWT_SECRET: docker-demo-shared-secret-change-me
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:

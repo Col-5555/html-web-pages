@@ -139,6 +139,23 @@ Seeded data is removed and the Mongoose connection closed after the run
 (`afterAll`), so the test database is left clean. Jest runs in native-ESM mode
 (`NODE_OPTIONS=--experimental-vm-modules`, wired into the `test` script).
 
+## Docker
+
+A single-stage [`Dockerfile`](Dockerfile) (base `node:lts-alpine3.19`) packages the
+API. Config is passed as env vars at run time — secrets are never baked in
+(`.dockerignore` excludes `.env*`).
+
+```bash
+docker build -t codecla-express:v1 .
+docker run -d -p 4000:4000 \
+  -e MONGODB_URI=mongodb://mongo:27017 -e MONGODB_DB=codecla \
+  -e JWT_SECRET=your-secret -e APP_URL=http://localhost:4000 codecla-express:v1
+```
+
+Or bring up the whole backend (Mongo + this API + the NestJS API) with the repo-root
+[`docker-compose.yml`](../docker-compose.yml): `docker compose up --build`. See the
+[deployment walkthrough](../reference/walkthroughs/backend-deployment-walkthrough.md).
+
 ## Walkthroughs
 
 Teaching walkthroughs live in [`reference/walkthroughs/`](../reference/walkthroughs/):
@@ -147,5 +164,7 @@ the environment system + tests
 ([`unit-testing-walkthrough.md`](../reference/walkthroughs/unit-testing-walkthrough.md)),
 the GraphQL layer
 ([`graphql-walkthrough.md`](../reference/walkthroughs/graphql-walkthrough.md)),
-and avatar file upload
-([`file-upload-walkthrough.md`](../reference/walkthroughs/file-upload-walkthrough.md)).
+avatar file upload
+([`file-upload-walkthrough.md`](../reference/walkthroughs/file-upload-walkthrough.md)),
+and Docker deployment
+([`backend-deployment-walkthrough.md`](../reference/walkthroughs/backend-deployment-walkthrough.md)).

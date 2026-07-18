@@ -1,0 +1,19 @@
+# Installed in-image, never copied from the host.
+node_modules
+
+# Secrets — passed as env vars at runtime, never baked into the image.
+.env
+.env.*
+
+# VCS / logs / local cruft.
+.git
+.gitignore
+npm-debug.log*
+*.log
+
+# Not needed at runtime.
+test
+coverage
+README.md
+Dockerfile
+.dockerignore
