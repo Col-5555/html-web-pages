@@ -3,21 +3,24 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import AuthLayout from "../components/AuthLayout";
 import { login } from "../redux/authSlice";
-import { signIn } from "../api/auth";
+import { useLoginMutation } from "../redux/api";
 
 const inputClasses =
   "p-3.5 bg-navy border-none rounded-lg text-light text-sm outline-none placeholder:text-[#a0a0b0]";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Sign-in page. Task 6 asks us to validate this form using plain React state
-// (no external form library), so we keep the field values and any error
-// messages in useState and validate on submit.
+// Sign-in page. Client-side validation stays in useState (per the earlier task);
+// on submit we call the real backend via useLoginMutation, store the returned
+// { user, token } in Redux, and land on Home. Auth errors from the API — 401 for
+// bad credentials, 403 for an unverified email — are surfaced to the user.
 export default function SignIn() {
   const [values, setValues] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState("");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [loginRequest, { isLoading }] = useLoginMutation();
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -39,15 +42,26 @@ export default function SignIn() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setFormError("");
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
-    const user = await signIn({ email: values.email });
-    dispatch(login(user));
-    navigate("/");
+    try {
+      const { user, token } = await loginRequest(values).unwrap();
+      dispatch(login({ user, token }));
+      navigate("/");
+    } catch (err) {
+      // RTK Query surfaces the HTTP status on err.status and the JSON body on
+      // err.data. Prefer the backend's message (covers 401 bad creds and 403
+      // unverified email); fall back to a generic message otherwise.
+      setFormError(
+        err?.data?.message ??
+          "Could not sign you in. Please try again."
+      );
+    }
   };
 
   return (
@@ -82,11 +96,16 @@ export default function SignIn() {
           )}
         </div>
 
+        {formError && (
+          <span className="text-sm text-red-500">{formError}</span>
+        )}
+
         <button
           type="submit"
-          className="cursor-pointer rounded-lg border-none bg-skyblue p-3.5 text-base font-bold text-light"
+          disabled={isLoading}
+          className="cursor-pointer rounded-lg border-none bg-skyblue p-3.5 text-base font-bold text-light disabled:opacity-70"
         >
-          Login
+          {isLoading ? "Signing in…" : "Login"}
         </button>
       </form>
       <p className="mt-5 text-sm text-navy">

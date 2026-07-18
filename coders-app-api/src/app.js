@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { graphqlHTTP } from "express-graphql";
 import apiRoutes from "./routes/index.js";
 import { schema } from "./graphql/schema.js";
@@ -10,6 +11,11 @@ import { notFound, errorHandler } from "./middlewares/errorHandler.js";
 // start-up so it can be imported and tested without binding a port).
 export const createApp = () => {
   const app = express();
+
+  // Allow the browser-based front-ends (coders-app on :5173, etc.) to call the
+  // API from a different origin. Dev-open CORS is fine for this bootcamp scope,
+  // mirroring the Nest app's enableCors().
+  app.use(cors());
 
   // Parse JSON request bodies.
   app.use(express.json());

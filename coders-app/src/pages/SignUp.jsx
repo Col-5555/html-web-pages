@@ -1,32 +1,81 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
-import { login } from "../redux/authSlice";
-import { signUp } from "../api/auth";
+import { useRegisterMutation } from "../redux/api";
 import { signupSchema } from "../schemas/signupSchema";
 
 const inputClasses =
   "p-3.5 bg-navy border-none rounded-lg text-light text-sm outline-none placeholder:text-[#a0a0b0]";
 
-// Sign-up page. Task 6 asks us to validate this form with react-hook-form and
-// zod: useForm registers the inputs, the zodResolver runs `signupSchema` on
-// submit, and `errors` carries any messages produced by the schema.
+// Sign-up page. react-hook-form + zod validate the fields (per the earlier task);
+// on submit we register against the backend. Registration does NOT log the user
+// in — the account is created unverified and must confirm its email first — so on
+// success we show a "check your email" notice (plus the dev Ethereal preview
+// link) and point them to the sign-in page rather than navigating into the app.
 export default function SignUp() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({ resolver: zodResolver(signupSchema) });
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const [registerRequest, { isLoading }] = useRegisterMutation();
+  const [formError, setFormError] = useState("");
+  const [success, setSuccess] = useState(null); // { message, emailPreviewUrl }
 
   const onSubmit = async (data) => {
-    const user = await signUp(data);
-    dispatch(login(user));
-    navigate("/");
+    setFormError("");
+    try {
+      // The backend expects snake_case names.
+      const result = await registerRequest({
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        password: data.password,
+      }).unwrap();
+      setSuccess({
+        message: result.message,
+        emailPreviewUrl: result.emailPreviewUrl,
+      });
+    } catch (err) {
+      // e.g. 409 when the email already exists.
+      setFormError(
+        err?.data?.message ?? "Could not create your account. Please try again."
+      );
+    }
   };
+
+  // After a successful registration, replace the form with a confirmation notice.
+  if (success) {
+    return (
+      <AuthLayout>
+        <h2 className="mb-4 text-2xl text-purple">Almost there!</h2>
+        <p className="mb-4 text-sm text-navy">
+          Check your email to verify your account before signing in.
+        </p>
+        {success.emailPreviewUrl && (
+          <p className="mb-4 text-sm text-navy">
+            Dev preview:{" "}
+            <a
+              href={success.emailPreviewUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-purple underline"
+            >
+              open verification email
+            </a>
+          </p>
+        )}
+        <Link
+          to="/signin"
+          className="font-semibold text-purple no-underline"
+        >
+          Go to Login
+        </Link>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout>
@@ -86,12 +135,16 @@ export default function SignUp() {
           )}
         </div>
 
+        {formError && (
+          <span className="text-sm text-red-500">{formError}</span>
+        )}
+
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isLoading}
           className="cursor-pointer rounded-lg border-none bg-skyblue p-3.5 text-base font-bold text-light disabled:opacity-70"
         >
-          Sign Up
+          {isLoading ? "Creating account…" : "Sign Up"}
         </button>
       </form>
       <p className="mt-5 text-sm text-navy">

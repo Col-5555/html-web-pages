@@ -16,9 +16,11 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
-  const displayName = user?.firstName
-    ? `${user.firstName} ${user.lastName}`
+  // The backend serialises users in snake_case (first_name / last_name / avatar).
+  const displayName = user?.first_name
+    ? `${user.first_name} ${user.last_name}`
     : (user?.email ?? "Coder");
+  const avatarUrl = user?.avatar || "https://i.pravatar.cc/80?img=12";
 
   // Close the dropdown when clicking anywhere outside it.
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function Navbar() {
             className="flex items-center gap-2"
           >
             <img
-              src="https://i.pravatar.cc/80?img=12"
+              src={avatarUrl}
               alt="Your avatar"
               className="h-8 w-8 rounded-full object-cover"
             />

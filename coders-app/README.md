@@ -61,14 +61,25 @@ git clone https://github.com/your-username/html-web-pages.git
 cd html-web-pages/coders-app
 ```
 
-2. **Install dependencies and run the dev server:**
+2. **Configure the backend URL:**
+
+The app talks to the [`coders-app-api`](../coders-app-api) backend. Copy the
+example env file and adjust if your API runs elsewhere:
+
+```bash
+cp .env.example .env   # VITE_API_URL=http://localhost:4000
+```
+
+3. **Install dependencies and run the dev server:**
 
 ```bash
 npm install
 npm run dev
 ```
 
-Then open the printed local URL (default `http://localhost:5173`).
+Then open the printed local URL (default `http://localhost:5173`). Start the
+backend too (`cd ../coders-app-api && npm run dev`) — the app authenticates and
+loads data from it.
 
 ### Available scripts
 
