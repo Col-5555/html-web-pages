@@ -12,7 +12,9 @@ checkpoint between. This document grows with each phase.
 
 - **Phase 1 — Foundation + Auth**: backend CORS, the RTK Query API slice, store +
   localStorage persistence, a real token in Redux, and live sign-in / sign-up.
-- **Phase 2 — Challenges list** (planned).
+- **Phase 2 — Challenges list**: the Home table + category filter now read live
+  data via RTK Query, with the backend↔UI field mapping done in
+  `transformResponse`.
 - **Phase 3 — Workspace / submissions** (planned).
 - **Phase 4 — Profile + avatar upload + stats** (planned).
 - **Phase 5 — Leaderboard + Home sidebar** (planned).
@@ -117,3 +119,56 @@ The mock `src/api/auth.js` is deleted.
 The serialized `user` is snake_case (`_id`, `first_name`, `last_name`, `email`,
 `avatar`, `role`, `is_verified`) with the password hash stripped by the model's
 `toJSON` transform.
+
+---
+
+## Phase 2: Challenges list + categories (Home)
+
+The Home screen's challenges table and its category filter were driven entirely
+by `src/data/challenges.js` / `src/data/categories.js`. They now read live data.
+
+### Two query endpoints
+
+Added to the RTK Query slice (`src/redux/api.js`):
+
+```js
+getChallenges: builder.query({
+  query: (category) =>
+    category ? `/challenges?category=${encodeURIComponent(category)}` : "/challenges",
+  transformResponse: (challenges) => challenges.map(mapChallengeSummary),
+  providesTags: ["Challenge"],
+}),
+getCategories: builder.query({
+  query: () => "/categories",     // plain array of strings — no mapping needed
+  providesTags: ["Challenge"],
+}),
+```
+
+### The field mapping lives in `transformResponse`
+
+The backend and the existing table disagree on a few names, so the components
+stay untouched — the mapping happens once, in `mapChallengeSummary`:
+
+| Backend | UI |
+| --- | --- |
+| `_id` | `id` |
+| `solution_rate` (int, e.g. `50`) | `solutionRate` (`"50%"`) |
+| `status: "Waiting"` | `status: "Pending"` (the UI's value; `Attempted` / `Completed` already match) |
+
+`StatusIcon` already renders `Pending` (amber hourglass), so no icon changes were
+needed.
+
+### Home wiring
+
+`Home.jsx` swaps the mock imports for `useGetChallengesQuery` /
+`useGetCategoriesQuery`. Filtering is done **server-side**: the selected category
+is passed to the query (`"All"` sends `undefined`, omitting the param). The page
+shows loading / error states, and `CategoriesList` now takes the fetched
+categories as a prop instead of importing the mock file (which is deleted).
+
+### Verified against the live backend
+
+`GET /api/categories` → `["Data structure","Graphs","Math"]`; `GET /api/challenges`
+returns the four seeded challenges (`solution_rate` ints + `Waiting`/`Completed`
+statuses, mapped to `"NN%"` + `Pending`/`Completed`); `?category=Graphs` filters
+to one; a request with no token → `401`. `npm run build` + `lint` clean.

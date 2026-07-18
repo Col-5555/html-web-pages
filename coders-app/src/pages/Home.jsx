@@ -4,7 +4,7 @@ import CategoriesList from "../components/CategoriesList";
 import ChallengesList from "../components/ChallengesList";
 import TrendingCategoriesBox from "../components/TrendingCategoriesBox";
 import TopKCodersList from "../components/TopKCodersList";
-import { challenges } from "../data/challenges";
+import { useGetChallengesQuery, useGetCategoriesQuery } from "../redux/api";
 
 // The home / challenges page — the index screen of the app. Lays out the
 // navbar, the challenges table (with category filter) in the main column, and
@@ -12,11 +12,17 @@ import { challenges } from "../data/challenges";
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // "All" shows everything; otherwise filter by the challenge's category.
-  const visibleChallenges =
-    selectedCategory === "All"
-      ? challenges
-      : challenges.filter((c) => c.category === selectedCategory);
+  // Fetch the challenges from the backend, letting it do the category filtering
+  // ("All" omits the query param so every challenge comes back). Categories for
+  // the filter pills come from their own endpoint.
+  const {
+    data: challenges = [],
+    isLoading,
+    isError,
+  } = useGetChallengesQuery(
+    selectedCategory === "All" ? undefined : selectedCategory
+  );
+  const { data: categories = [] } = useGetCategoriesQuery();
 
   return (
     <div className="min-h-screen bg-appbg-light font-martel text-black dark:bg-appbg-dark dark:text-white">
@@ -29,11 +35,20 @@ export default function Home() {
           <p className="mb-3 mt-4 text-sm text-muted">Select category</p>
           <div className="mb-4">
             <CategoriesList
+              categories={categories}
               selected={selectedCategory}
               onSelect={setSelectedCategory}
             />
           </div>
-          <ChallengesList challenges={visibleChallenges} />
+          {isLoading ? (
+            <p className="text-muted">Loading challenges…</p>
+          ) : isError ? (
+            <p className="text-red-500">
+              Could not load challenges. Please try again.
+            </p>
+          ) : (
+            <ChallengesList challenges={challenges} />
+          )}
         </main>
 
         {/* Sidebar: trending categories + top coders */}
