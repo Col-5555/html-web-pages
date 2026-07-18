@@ -1,18 +1,36 @@
 import { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { FaPencil } from "react-icons/fa6";
-import { profile } from "../data/profile";
+import { useGetProfileQuery, useUpdateProfileMutation } from "../redux/api";
+import { setUser } from "../redux/authSlice";
 
 // The profile form: avatar upload + editable name/bio, a read-only email, the
-// coder's rank, and an Update button. Update is a mock for now (no backend).
+// coder's rank, and an Update button. Loads the coder's own profile from the
+// backend and PATCHes it (multipart, so the avatar image rides along).
 export default function ProfileForm() {
   const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
+  const coderId = user?._id;
 
-  const [firstName, setFirstName] = useState(profile.first_name);
-  const [lastName, setLastName] = useState(profile.last_name);
-  const [bio, setBio] = useState(profile.bio);
-  const [avatarPreview, setAvatarPreview] = useState(profile.avatar_url);
+  const { data: profile } = useGetProfileQuery(coderId, { skip: !coderId });
+  const [updateProfile, { isLoading }] = useUpdateProfileMutation();
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [bio, setBio] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarFile, setAvatarFile] = useState(null);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  // Seed the form once the profile arrives (and after a save refetch).
+  useEffect(() => {
+    if (!profile) return;
+    setFirstName(profile.first_name ?? "");
+    setLastName(profile.last_name ?? "");
+    setBio(profile.description ?? "");
+    setAvatarPreview(profile.avatar ?? "");
+  }, [profile]);
 
   // Track the object URL we create so we can revoke it (avoid memory leaks).
   const objectUrlRef = useRef(null);
@@ -31,12 +49,32 @@ export default function ProfileForm() {
     const url = URL.createObjectURL(file);
     objectUrlRef.current = url;
     setAvatarPreview(url);
+    setAvatarFile(file);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // Placeholder: later this PATCHes the profile via the backend.
-    setSaved(true);
+    setSaved(false);
+    setError("");
+
+    const formData = new FormData();
+    formData.append("first_name", firstName);
+    formData.append("last_name", lastName);
+    formData.append("about", bio);
+    if (avatarFile) formData.append("avatar", avatarFile);
+
+    try {
+      const { profile: updated } = await updateProfile({
+        id: coderId,
+        formData,
+      }).unwrap();
+      // Keep the Navbar name/avatar in sync with the saved profile.
+      dispatch(setUser(updated));
+      setAvatarFile(null);
+      setSaved(true);
+    } catch (err) {
+      setError(err?.data?.message ?? "Could not update your profile.");
+    }
   };
 
   const inputClasses =
@@ -76,7 +114,9 @@ export default function ProfileForm() {
           </h2>
         </div>
 
-        <span className="text-lg font-semibold">Rank: {profile.rank}</span>
+        <span className="text-lg font-semibold">
+          Rank: {profile?.rank ?? "—"}
+        </span>
       </div>
 
       {/* Fields */}
@@ -127,11 +167,13 @@ export default function ProfileForm() {
             Profile updated!
           </span>
         )}
+        {error && <span className="text-sm text-red-500">{error}</span>}
         <button
           type="submit"
-          className="rounded bg-skyblue px-4 py-1.5 text-sm font-semibold text-white"
+          disabled={isLoading}
+          className="rounded bg-skyblue px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-70"
         >
-          Update
+          {isLoading ? "Saving…" : "Update"}
         </button>
       </div>
     </form>

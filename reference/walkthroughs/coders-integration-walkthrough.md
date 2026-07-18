@@ -18,7 +18,9 @@ checkpoint between. This document grows with each phase.
 - **Phase 3 — Workspace / submissions**: the coding lab loads a real challenge,
   the editor code lives in Redux, and Submit posts to the grader (external code
   runner) and shows the per-test result.
-- **Phase 4 — Profile + avatar upload + stats** (planned).
+- **Phase 4 — Profile + avatar upload + stats**: the profile form loads/saves the
+  coder's real profile (avatar upload included), and the stats panels read live
+  solved-challenge counts + the submission heatmap.
 - **Phase 5 — Leaderboard + Home sidebar** (planned).
 
 Design decisions (agreed up front): **all REST** via a single RTK Query slice
@@ -235,3 +237,57 @@ afterward to leave the demo data untouched.) `npm run build` + `lint` clean.
 
 With this phase the app no longer imports any `src/data/*.js` challenge mock —
 `challenges.js` is deleted.
+
+---
+
+## Phase 4: Profile — view/update + avatar upload + stats
+
+The profile page's form (`ProfileForm`) and its two stat panels
+(`CompletedChallenges`, `CodingStrikes`) were driven by `src/data/profile.js` and
+the Update button was a no-op. They now read and write live data.
+
+### Four endpoints
+
+```js
+getProfile: builder.query({                 // owner-only; returns user + rank
+  query: (id) => `/coders/${id}/profile`,
+  providesTags: (r, e, id) => [{ type: "Profile", id }],
+}),
+updateProfile: builder.mutation({           // multipart: avatar file + text fields
+  query: ({ id, formData }) => ({ url: `/coders/${id}/profile`, method: "PATCH", body: formData }),
+  invalidatesTags: (r, e, { id }) => [{ type: "Profile", id }],
+}),
+getSolvedChallenges: builder.query({ query: () => "/stats/solved-challenges", transformResponse: … }),
+getHeatmap: builder.query({ query: () => "/stats/heatmap" }),   // already [{date,count}]
+```
+
+### The form
+
+`ProfileForm` fetches the logged-in coder's profile (`user._id`) and seeds its
+fields from the backend's snake_case shape (`first_name`, `last_name`,
+`description` → bio, `avatar`, `rank`). Submit builds a **`FormData`** with the
+text fields plus the picked avatar `File` and PATCHes it — RTK Query's
+`fetchBaseQuery` sends it as `multipart/form-data` (no manual content-type), so
+the image reaches Multer → Supabase. On success the returned profile is written
+back to the auth slice via a new `setUser` action, so the **Navbar name/avatar
+update immediately**. This completes the file-upload brief's frontend half.
+
+### The stat panels
+
+- `CompletedChallenges` reads `getSolvedChallenges`, whose `transformResponse`
+  reshapes the backend's flat `totalEasySolvedChallenges` / `totalEasyChallenges`
+  / … into the panel's `{ easy|moderate|hard: { solved, total } }` (the bars still
+  compute the percentage themselves).
+- `CodingStrikes` reads `getHeatmap` — the backend already returns
+  `[{ date:"YYYY/MM/DD", count }]`, exactly what `@uiw/react-heat-map` wants. The
+  static `panelColors` + `heatmapStartDate` helpers stay in `data/profile.js`
+  (now trimmed to just those two); its mock `profile` / `completedChallenges` /
+  `heatmapValue` are gone.
+
+### Verified against the live backend
+
+`GET /coders/:id/profile` returns the profile + `rank`; `GET
+/stats/solved-challenges` and `GET /stats/heatmap` return the expected shapes; a
+`multipart` `PATCH` with text fields + an image → `200 { message, profile }` with
+the updated fields and a fresh Supabase avatar URL. (omar's profile was restored
+afterward.) `npm run build` + `lint` clean.

@@ -20,6 +20,11 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.token;
     },
+    // Replace the stored user (e.g. after a profile update) without touching the
+    // token — keeps the Navbar name/avatar in sync.
+    setUser: (state, action) => {
+      state.user = action.payload;
+    },
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
@@ -28,5 +33,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { login, logout } = authSlice.actions;
+export const { login, logout, setUser } = authSlice.actions;
 export default authSlice.reducer;

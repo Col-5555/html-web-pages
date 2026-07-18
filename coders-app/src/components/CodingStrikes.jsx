@@ -1,16 +1,15 @@
 import { useSelector } from "react-redux";
 import HeatMap from "@uiw/react-heat-map";
-import {
-  heatmapValue,
-  heatmapStartDate,
-  panelColors,
-} from "../data/profile";
+import { useGetHeatmapQuery } from "../redux/api";
+import { heatmapStartDate, panelColors } from "../data/profile";
 
 // The "Your coding strikes" panel: a GitHub-style heatmap of accepted
-// submissions over the last year. Colours come from the brief's panelColors and
-// follow the app theme. Each cell gets an SVG <title> for a hover tooltip.
+// submissions over the last year. The daily counts come from the backend
+// ([{ date, count }]); the start date + panel colours are static helpers.
+// Colours follow the app theme; each cell gets an SVG <title> for a tooltip.
 export default function CodingStrikes() {
   const mode = useSelector((state) => state.theme.mode);
+  const { data: heatmapValue = [] } = useGetHeatmapQuery();
 
   return (
     <section className="rounded-lg bg-white p-4 shadow dark:bg-navy/60">

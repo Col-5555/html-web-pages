@@ -1,4 +1,4 @@
-import { completedChallenges } from "../data/profile";
+import { useGetSolvedChallengesQuery } from "../redux/api";
 
 // One progress bar for a difficulty. The percentage is computed on the frontend
 // from solved / total (the backend will send those two numbers later).
@@ -25,9 +25,12 @@ function Bar({ label, color, solved, total }) {
   );
 }
 
+const EMPTY = { solved: 0, total: 0 };
+
 // The "Completed challenges" statistics panel: Easy / Moderate / Hard bars.
 export default function CompletedChallenges() {
-  const { easy, moderate, hard } = completedChallenges;
+  const { data } = useGetSolvedChallengesQuery();
+  const { easy = EMPTY, moderate = EMPTY, hard = EMPTY } = data ?? {};
 
   return (
     <section className="rounded-lg bg-white p-4 shadow dark:bg-navy/60">

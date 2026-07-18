@@ -144,6 +144,55 @@ export const api = createApi({
       }),
       invalidatesTags: ["Challenge"],
     }),
+
+    // A coder's own profile (owner-only on the backend). Returns the user in
+    // snake_case plus a computed `rank`. No mapping needed — the form reads the
+    // backend fields directly.
+    getProfile: builder.query({
+      query: (id) => `/coders/${id}/profile`,
+      providesTags: (result, error, id) => [{ type: "Profile", id }],
+    }),
+
+    // Update the profile. Body is FormData (an optional `avatar` file + the text
+    // fields first_name / last_name / about), so we DON'T set a JSON content-type
+    // — fetchBaseQuery lets the browser set the multipart boundary. Returns
+    // { message, profile }. Invalidate Profile so the view refetches.
+    updateProfile: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `/coders/${id}/profile`,
+        method: "PATCH",
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Profile", id }],
+    }),
+
+    // Solved-challenges stats for the logged-in coder. Mapped to the
+    // CompletedChallenges shape { easy|moderate|hard: { solved, total } }.
+    getSolvedChallenges: builder.query({
+      query: () => "/stats/solved-challenges",
+      transformResponse: (s) => ({
+        easy: {
+          solved: s.totalEasySolvedChallenges,
+          total: s.totalEasyChallenges,
+        },
+        moderate: {
+          solved: s.totalModerateSolvedChallenges,
+          total: s.totalModerateChallenges,
+        },
+        hard: {
+          solved: s.totalHardSolvedChallenges,
+          total: s.totalHardChallenges,
+        },
+      }),
+      providesTags: ["Stats"],
+    }),
+
+    // The coding-strikes heatmap: [{ date: "YYYY/MM/DD", count }] — already the
+    // shape @uiw/react-heat-map expects, so no mapping needed.
+    getHeatmap: builder.query({
+      query: () => "/stats/heatmap",
+      providesTags: ["Stats"],
+    }),
   }),
 });
 
@@ -154,4 +203,8 @@ export const {
   useGetCategoriesQuery,
   useGetChallengeQuery,
   useSubmitMutation,
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+  useGetSolvedChallengesQuery,
+  useGetHeatmapQuery,
 } = api;
