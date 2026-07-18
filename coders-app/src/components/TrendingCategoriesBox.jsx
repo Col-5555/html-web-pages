@@ -1,8 +1,10 @@
-import { trendingCategories } from "../data/trendingCategories";
+import { useGetTrendingCategoriesQuery } from "../redux/api";
 
 // Lists the most-submitted categories. Each pill shows the category name and a
 // badge with the number of challenges submitted in it.
 export default function TrendingCategoriesBox() {
+  const { data: trendingCategories = [] } = useGetTrendingCategoriesQuery();
+
   return (
     <section className="rounded-lg bg-white p-4 shadow dark:bg-navy/60">
       <h2 className="mb-3 text-center text-lg font-bold">Trending Categories</h2>

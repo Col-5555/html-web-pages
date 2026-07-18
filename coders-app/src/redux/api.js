@@ -142,7 +142,9 @@ export const api = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["Challenge"],
+      // A pass changes the challenge status, the coder's score (leaderboard), and
+      // the solved/heatmap/trending stats — refresh them all.
+      invalidatesTags: ["Challenge", "Leaderboard", "Stats"],
     }),
 
     // A coder's own profile (owner-only on the backend). Returns the user in
@@ -193,6 +195,44 @@ export const api = createApi({
       query: () => "/stats/heatmap",
       providesTags: ["Stats"],
     }),
+
+    // The full leaderboard, coders ordered by score (highest first). The backend
+    // doesn't send a rank, so it's the row order (index + 1).
+    getLeaderboard: builder.query({
+      query: () => "/leaderboard",
+      transformResponse: (coders) =>
+        coders.map((c, index) => ({
+          id: c._id,
+          rank: index + 1,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          score: c.score,
+          solved_challenges: c.solved_challenges,
+        })),
+      providesTags: ["Leaderboard"],
+    }),
+
+    // The top-k coders for the Home sidebar cards. Maps _id -> id and
+    // avatar -> avatar_url (the CoderCard's expected field).
+    getTopCoders: builder.query({
+      query: (k = 4) => `/leaderboard/top?k=${k}`,
+      transformResponse: (coders) =>
+        coders.map((c) => ({
+          id: c._id,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          avatar_url: c.avatar,
+          score: c.score,
+        })),
+      providesTags: ["Leaderboard"],
+    }),
+
+    // Most-submitted categories: [{ category, count }] — already the shape the
+    // TrendingCategoriesBox expects.
+    getTrendingCategories: builder.query({
+      query: () => "/stats/trending-categories",
+      providesTags: ["Stats"],
+    }),
   }),
 });
 
@@ -207,4 +247,7 @@ export const {
   useUpdateProfileMutation,
   useGetSolvedChallengesQuery,
   useGetHeatmapQuery,
+  useGetLeaderboardQuery,
+  useGetTopCodersQuery,
+  useGetTrendingCategoriesQuery,
 } = api;

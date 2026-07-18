@@ -21,7 +21,9 @@ checkpoint between. This document grows with each phase.
 - **Phase 4 — Profile + avatar upload + stats**: the profile form loads/saves the
   coder's real profile (avatar upload included), and the stats panels read live
   solved-challenge counts + the submission heatmap.
-- **Phase 5 — Leaderboard + Home sidebar** (planned).
+- **Phase 5 — Leaderboard + Home sidebar**: the leaderboard table and the Home
+  sidebar (top coders + trending categories) read live data — the app is now
+  fully backend-integrated.
 
 Design decisions (agreed up front): **all REST** via a single RTK Query slice
 (the backend's `/graphql` read layer stays unused by this frontend), and the UI
@@ -291,3 +293,59 @@ update immediately**. This completes the file-upload brief's frontend half.
 `multipart` `PATCH` with text fields + an image → `200 { message, profile }` with
 the updated fields and a fresh Supabase avatar URL. (omar's profile was restored
 afterward.) `npm run build` + `lint` clean.
+
+---
+
+## Phase 5: Leaderboard + Home sidebar
+
+The last three mock files powered the leaderboard page and the Home sidebar. With
+this phase they read live data and the app is fully backend-integrated.
+
+### Three endpoints
+
+```js
+getLeaderboard: builder.query({          // coders by score; rank = row order
+  query: () => "/leaderboard",
+  transformResponse: (coders) => coders.map((c, i) => ({ id: c._id, rank: i + 1, … })),
+  providesTags: ["Leaderboard"],
+}),
+getTopCoders: builder.query({            // Home sidebar cards; _id->id, avatar->avatar_url
+  query: (k = 4) => `/leaderboard/top?k=${k}`,
+  transformResponse: (coders) => coders.map((c) => ({ id: c._id, avatar_url: c.avatar, … })),
+  providesTags: ["Leaderboard"],
+}),
+getTrendingCategories: builder.query({   // already [{ category, count }]
+  query: () => "/stats/trending-categories",
+  providesTags: ["Stats"],
+}),
+```
+
+The backend orders coders by score but doesn't send a `rank`, so the leaderboard
+map derives it from the row index; the top-coder cards map `_id`→`id` and
+`avatar`→`avatar_url` (an empty avatar falls back to initials in `CoderCard`).
+`Leaderboard` gets loading/error states; `TopKCodersList` asks for `k = 4`.
+
+### Cache invalidation across phases
+
+Now that scores and stats are live, the **`submit`** mutation invalidates
+`Challenge`, `Leaderboard`, **and** `Stats` — so solving a challenge refreshes the
+challenge status, the leaderboard, and the solved/heatmap/trending panels
+together.
+
+### Verified against the live backend
+
+`GET /leaderboard` returns the coders ordered by score (password projected out,
+`solved_challenges` included); `GET /leaderboard/top?k=4` returns the same ordered
+subset; `GET /stats/trending-categories` returns `[{ category, count }]`. `npm run
+build` + `lint` clean.
+
+---
+
+## Done
+
+All five phases are complete: the Coders app authenticates and reads/writes live
+data across every screen. No `src/data/*.js` mock remains except the heatmap's
+static `panelColors` / `heatmapStartDate` helpers. The whole app talks to
+`coders-app-api` through **one RTK Query slice** (`src/redux/api.js`), with every
+backend↔UI shape difference reconciled in `transformResponse` so the components
+kept their original shapes.
